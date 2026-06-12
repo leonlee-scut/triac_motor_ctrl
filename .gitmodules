@@ -1,0 +1,6 @@
+[submodule "3rdparty/common"]
+	path = 3rdparty/common
+	url = https://github.com/leonlee-scut/common.git
+[submodule "3rdparty/IQmath"]
+	path = 3rdparty/IQmath
+	url = https://github.com/leonlee-scut/IQmath.git

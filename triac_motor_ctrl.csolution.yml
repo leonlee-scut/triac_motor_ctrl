@@ -1,0 +1,68 @@
+# A solution is a collection of related projects that share same base configuration.
+solution:
+  created-for: CMSIS-Toolbox@2.12.0
+  cdefault: # use CMSIS-Toolbox default Compiler options
+
+  # Compilers that can be selected
+  select-compiler:
+    - compiler: AC6
+    - compiler: GCC
+    - compiler: IAR
+    - compiler: CLANG
+
+  # List of miscellaneous tool-specific controls
+  misc:
+    - for-compiler: AC6 # GDB requires DWARF 5, remove when using uVision Debugger
+      C-CPP:
+        - -gdwarf-5
+        - -fshort-enums
+      ASM:
+        - -gdwarf-5
+
+  # List the packs that define the device and/or board.
+  packs:
+    - pack: Puya::PY32F0xx_DFP
+    - pack: ARM::CMSIS
+
+  # List different hardware targets that are used to deploy the solution.
+  target-types:
+    - type: PY32F003x8
+      device: PY32F003x8
+      target-set:
+        - set:
+          images:
+            - project-context: triac_motor_ctrl.Debug
+          debugger:
+            name: Keil uVision
+            uv4: c:/GNU/Keil/UV4/UV4.exe
+
+  # List of different build configurations.
+  build-types:
+    - type: Debug
+      debug: on
+      optimize: none
+      define:
+        - DEBUG
+
+    - type: Release
+      debug: off
+      optimize: balanced
+      define:
+        - NDEBUG
+        - RELEASE
+
+  # List related projects.
+  projects:
+    - project: triac_motor_ctrl/triac_motor_ctrl.cproject.yml
+  compiler: AC6
+
+  # Global defines
+  #    Notes: py32f0xx.h header file does not define SVCall_IRQn instead of SVC_IRQn.
+  #           In RTX Configuration file, SVCall_IRQn is used to setup the NVIC priority.
+  #           So, we need to define SVCall_IRQn here to avoid compilation error.
+  define:
+    - PY32F003x8
+    # - USE_HAL_DRIVER
+    - SVCall_IRQn: SVC_IRQn
+    - GLOBAL_IQ: 16
+    # - HSI_VALUE: 24000000

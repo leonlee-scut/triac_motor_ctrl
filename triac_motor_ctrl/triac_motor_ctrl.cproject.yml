@@ -1,0 +1,80 @@
+# A project translates into one executable or library.
+project:
+  add-path:
+    - RTE/Device/PY32F003x8
+    - RTE/Device/PY32F003x8/inc
+    - RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Inc
+
+  groups:
+    - group: Source Files
+      files:
+        - file: RTE/Device/PY32F003x8/src/main.c
+        - file: RTE/Device/PY32F003x8/src/py32f0xx_it.c
+        # - file: RTE/Device/PY32F003x8/src/py32f0xx_hal_msp.c
+    - group: LL_Driver
+      files:
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_adc.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_comp.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_cortex.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_crc.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_dma.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_exti.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_flash.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_gpio.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_i2c.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_irda.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_led.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_lptim.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_pwr.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc_ex.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rtc.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rtc_ex.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_spi.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim_ex.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_uart.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_usart.c
+        # - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_wwdg.c
+        - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_adc.c
+        - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_comp.c
+        - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_crc.c
+        - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_dma.c
+        - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_exti.c
+        - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_gpio.c
+        - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_i2c.c
+        - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_led.c
+        - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_lptim.c
+        - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_pwr.c
+        - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_rcc.c
+        - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_rtc.c
+        - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_spi.c
+        - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_tim.c
+        - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_usart.c
+        - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_utils.c
+    # - group: app
+    # - group: bsp
+
+    # List components to use for your application.
+    # A software component is a re-usable unit that may be configurable.
+  components:
+    - component: ARM::CMSIS:CORE
+    - component: Device:Startup
+    - component: CMSIS:OS Tick:SysTick
+    - component: CMSIS:RTOS2:Keil RTX5&Library
+
+  # List executable file formats to be generated.
+  output:
+    type:
+      - elf
+      - hex
+      - map
+  packs:
+    - pack: ARM::CMSIS-RTX
+
+  # List layers of the project
+  layers:
+    - layer: ../3rdparty/IQmath/IQmathLib.clayer.yml
+    - layer: ../3rdparty/common/common.clayer.yml
