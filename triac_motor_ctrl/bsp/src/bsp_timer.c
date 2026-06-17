@@ -1,0 +1,223 @@
+/**
+  * @file bsp_timer.c
+  * @brief 
+  * @author Leon Lee (leonlee.scut@outlook.com)
+  * @version 0.1
+  * @date 2026/06/15
+  * 
+  * @copyright Copyright (c) 2026 South China University of Technology.
+  * All rights reserved.
+  * 
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  * 
+  * @par History:
+  * 	Date		Version		Author			Description
+  * 	2026/06/15	0.1			Leon Lee		Preliminary version.
+  */
+
+#include "RTE_Components.h"
+#include CMSIS_device_header
+#include "bsp.h"
+#include "py32f0xx_ll.h"
+
+#define TIM3_CLK_FREQ           6000000UL       // TIM3 clock frequency in Hz (6MHz)
+
+static int __config_zcd_timer(void);
+static int __config_gate_drv_timer(void);
+
+int bsp_timer_init(void)
+{
+    __config_zcd_timer();
+    
+    return SUCCESS;
+}
+
+
+void bsp_zcd_timer_start(void)
+{
+    CRITICAL_SECTION_BEGIN();
+
+    /* Clear ZCD timer counter*/
+    LL_TIM_GenerateEvent_UPDATE(ZCD_TIM_INSTANCE);
+
+    /* Clear ZCD timer all interrupt flags */
+    LL_TIM_ClearFlag_UPDATE(ZCD_TIM_INSTANCE);
+    LL_TIM_ClearFlag_CC1(ZCD_TIM_INSTANCE);
+    LL_TIM_ClearFlag_CC3(ZCD_TIM_INSTANCE);
+
+    NVIC_ClearPendingIRQ(ZCD_TIM_IRQn);
+
+    /* Enable ZCD timer CC1 interrupt */
+    LL_TIM_EnableIT_CC1(ZCD_TIM_INSTANCE);
+
+    NVIC_SetPriority(ZCD_TIM_IRQn, ZCD_TIM_IRQPriority);
+    NVIC_EnableIRQ(ZCD_TIM_IRQn);
+
+    /* Enable ZCD timer channel */
+    LL_TIM_CC_EnableChannel(ZCD_TIM_INSTANCE, ZCD_TIM_CHANNEL);
+    /* Enable gate driver timer channel  */
+    LL_TIM_CC_EnableChannel(ZCD_TIM_INSTANCE, GATE_DRV_TIM_CHANNEL);
+    /* Enable ZCD timer counter */
+    LL_TIM_EnableCounter(ZCD_TIM_INSTANCE);
+
+    CRITICAL_SECTION_END();
+}
+
+
+void bsp_zcd_timer_stop(void)
+{
+    CRITICAL_SECTION_BEGIN();
+
+    /* Disable ZCD timer counter */
+    LL_TIM_DisableCounter(ZCD_TIM_INSTANCE);
+    /* Disable ZCD timer CC1 interrupt */
+    LL_TIM_DisableIT_CC1(ZCD_TIM_INSTANCE);
+
+    /* Disable ZCD timer interrupt */
+    NVIC_DisableIRQ(ZCD_TIM_IRQn);
+
+    CRITICAL_SECTION_END();
+}
+
+
+static int __config_zcd_timer(void)
+{
+    uint32_t tim_clk_hz;
+    uint32_t apb1_div;
+    uint32_t prescaler;
+    
+    // Enable ZCD timer clock
+    LL_APB1_GRP1_EnableClock(ZCD_TIM_CLOCK);
+
+    // Enable ZCD and gate driver ports clock
+    LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
+
+    // Get ZCD timer clock frequency
+    SystemCoreClockUpdate();
+    
+    // Ensure SystemCoreClock is updated equal to 24MHz
+    assert(SystemCoreClock == 24000000UL && "System clock is not equal to 24MHz"); 
+
+    apb1_div = 1UL;
+    switch (LL_RCC_GetAPB1Prescaler())
+    {
+        case LL_RCC_APB1_DIV_2:
+            apb1_div = 2UL;
+            break;
+        case LL_RCC_APB1_DIV_4:
+            apb1_div = 4UL;
+            break;
+        case LL_RCC_APB1_DIV_8:
+            apb1_div = 8UL;
+            break;
+        case LL_RCC_APB1_DIV_16:
+            apb1_div = 16UL;
+            break;
+        default:
+            apb1_div = 1UL;
+            break;
+    }
+
+    tim_clk_hz = SystemCoreClock / apb1_div;
+    if (LL_RCC_GetAPB1Prescaler() != LL_RCC_APB1_DIV_1)
+    {
+        tim_clk_hz *= 2UL;
+    }
+
+    prescaler = (tim_clk_hz / ZCD_TIM_FREQUENCY);
+    if (prescaler == 0UL)
+    {
+        prescaler = 1UL;
+    }
+
+    // Configure ZCD timer as one shot mode
+    LL_TIM_DisableCounter(ZCD_TIM_INSTANCE);
+
+    /* CK_INT not divided */
+    LL_TIM_SetClockDivision(ZCD_TIM_INSTANCE, LL_TIM_CLOCKDIVISION_DIV1);
+
+    /* Up counting */
+    LL_TIM_SetCounterMode(ZCD_TIM_INSTANCE, LL_TIM_COUNTERMODE_UP);
+
+    /* Set auto-reload value to ZCD_TIM_AUTORELOAD */
+    LL_TIM_SetAutoReload(ZCD_TIM_INSTANCE, ZCD_TIM_AUTORELOAD);
+
+    /* CK_CNT Prescaler value */
+    LL_TIM_SetPrescaler(ZCD_TIM_INSTANCE, prescaler - 1UL);
+
+    /* Set ZCD timer as slave mode trigger */
+    LL_TIM_SetSlaveMode(ZCD_TIM_INSTANCE,LL_TIM_SLAVEMODE_TRIGGER);
+  
+    /* Set input trigger source as TI1FP1 */
+    LL_TIM_SetTriggerInput(ZCD_TIM_INSTANCE,LL_TIM_TS_TI1FP1);
+
+    /* Trigger/output channel configuration */
+    __config_gate_drv_timer();
+
+    /* Set one-pulse mode */
+    LL_TIM_SetOnePulseMode(ZCD_TIM_INSTANCE,LL_TIM_ONEPULSEMODE_SINGLE);
+  
+    /* Disable automatic output */
+    LL_TIM_DisableAutomaticOutput(ZCD_TIM_INSTANCE);
+
+    /* Enable main output */
+    LL_TIM_EnableAllOutputs(ZCD_TIM_INSTANCE);
+  
+    /* Enable ZCD timer counter */
+    // LL_TIM_EnableCounter(ZCD_TIM_INSTANCE);
+
+    return SUCCESS;
+}
+
+static int __config_gate_drv_timer(void)
+{
+    /* ZCD timer channel configuration */
+    /* Configure active edge as rising edge */
+    LL_TIM_IC_SetPolarity(ZCD_TIM_INSTANCE, ZCD_TIM_CHANNEL, ZCD_TIM_IC_POLARITY);
+
+    /* Configure channel as input mode */
+    LL_TIM_IC_SetActiveInput(ZCD_TIM_INSTANCE, ZCD_TIM_CHANNEL, LL_TIM_ACTIVEINPUT_DIRECTTI);
+    /* Configure channel input filter */
+    LL_TIM_IC_SetFilter(ZCD_TIM_INSTANCE, ZCD_TIM_CHANNEL, LL_TIM_IC_FILTER_FDIV16_N8);
+    
+    /* ZCD timer channel input mapped to PA2 */
+    LL_GPIO_SetPinMode(GPIOx(ZCD_TIM_PIN), GPIO_PINx(ZCD_TIM_PIN), LL_GPIO_MODE_ALTERNATE);
+    LL_GPIO_SetAFPin_0_7(GPIOx(ZCD_TIM_PIN), GPIO_PINx(ZCD_TIM_PIN), ZCD_TIM_PIN_AF);
+
+    /* Enable ZCD timer channel */
+    // LL_TIM_CC_EnableChannel(ZCD_TIM_INSTANCE, ZCD_TIM_CHANNEL);
+
+    /* Gate driver timer channel configuration */
+    /* Set output polarity to high */
+    LL_TIM_OC_SetPolarity(ZCD_TIM_INSTANCE, GATE_DRV_TIM_CHANNEL, LL_TIM_OCPOLARITY_HIGH);
+    /* Set idle state to low */
+    LL_TIM_OC_SetIdleState(ZCD_TIM_INSTANCE, GATE_DRV_TIM_CHANNEL, LL_TIM_OCIDLESTATE_LOW);
+    /* Enable compare preload */
+    LL_TIM_OC_EnablePreload(ZCD_TIM_INSTANCE, GATE_DRV_TIM_CHANNEL);
+    /* Set compare value to MAX */
+    LL_TIM_OC_SetCompareCH3(ZCD_TIM_INSTANCE, ZCD_TIM_AUTORELOAD + 1U);
+    /* Configure channel as PWM2 mode */
+    LL_TIM_OC_SetMode(ZCD_TIM_INSTANCE, GATE_DRV_TIM_CHANNEL, LL_TIM_OCMODE_PWM2);
+
+    /* Output mapped to gate drive pin */
+    LL_GPIO_SetPinMode(GPIOx(GATE_DRV_TIM_PIN), GPIO_PINx(GATE_DRV_TIM_PIN), LL_GPIO_MODE_ALTERNATE);
+    LL_GPIO_SetAFPin_0_7(GPIOx(GATE_DRV_TIM_PIN), GPIO_PINx(GATE_DRV_TIM_PIN), GATE_DRV_TIM_PIN_AF);
+
+    /* Enable gate driver timer channel  */
+    // LL_TIM_CC_EnableChannel(ZCD_TIM_INSTANCE, GATE_DRV_TIM_CHANNEL);
+
+    return SUCCESS;
+}
+
+void ZCD_TIM_IRQHandler(void)
+{
+    if (LL_TIM_IsActiveFlag_CC1(ZCD_TIM_INSTANCE) != 0U)
+    {
+        LL_TIM_ClearFlag_CC1(ZCD_TIM_INSTANCE);
+        // Handle zero cross detection event here
+    }
+}
+
+/************* (C) COPYRIGHT South China Univ. of Tech. ****** END OF FILE ****/

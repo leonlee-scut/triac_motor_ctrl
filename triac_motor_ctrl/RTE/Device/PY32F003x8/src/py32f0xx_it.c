@@ -32,6 +32,8 @@
 #include "main.h"
 #include "py32f0xx_it.h"
 
+#include "bsp.h"
+
 #include "RTE_Components.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -92,5 +94,27 @@ void SysTick_Handler(void)
 /* For the available peripheral interrupt handler names,                      */
 /* please refer to the startup file.                                          */
 /******************************************************************************/
+
+/**
+  * @brief This function handles EXTI line 2 and 3 interrupts.
+  */
+void EXTI2_3_IRQHandler(void)
+{
+    if (LL_EXTI_IsActiveFlag(LL_EXTI_LINE_2))
+    {
+        LL_EXTI_ClearFlag(LL_EXTI_LINE_2);
+    }
+}
+
+/**
+  * @brief This function handles TIM3 global interrupt.
+  */
+// void TIM3_IRQHandler(void)
+// {
+//     if (LL_TIM_IsActiveFlag_CC1(TIM3) != 0U)
+//     {
+//         LL_TIM_ClearFlag_CC1(TIM3);
+//     }
+// }
 
 /************************ (C) COPYRIGHT Puya *****END OF FILE******************/

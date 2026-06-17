@@ -14,10 +14,11 @@ solution:
   misc:
     - for-compiler: AC6 # GDB requires DWARF 5, remove when using uVision Debugger
       C-CPP:
-        - -gdwarf-5
+        # - -gdwarf-5
         - -fshort-enums
-      ASM:
-        - -gdwarf-5
+        - -funsigned-char
+      # ASM:
+        # - -gdwarf-5
 
   # List the packs that define the device and/or board.
   packs:

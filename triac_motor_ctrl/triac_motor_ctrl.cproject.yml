@@ -4,6 +4,8 @@ project:
     - RTE/Device/PY32F003x8
     - RTE/Device/PY32F003x8/inc
     - RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Inc
+    - bsp/inc
+    - app/inc
 
   groups:
     - group: Source Files
@@ -55,15 +57,17 @@ project:
         - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_usart.c
         - file: RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Src/py32f0xx_ll_utils.c
     # - group: app
-    # - group: bsp
-
-    # List components to use for your application.
-    # A software component is a re-usable unit that may be configurable.
+    - group: bsp
+      files:
+        - file: bsp/src/bsp.c
+        - file: bsp/src/bsp_gpio.c
+        - file: bsp/src/bsp_timer.c
+        - file: bsp/src/bsp_buzzer.c
   components:
     - component: ARM::CMSIS:CORE
     - component: Device:Startup
     - component: CMSIS:OS Tick:SysTick
-    - component: CMSIS:RTOS2:Keil RTX5&Library
+    - component: CMSIS:RTOS2:Keil RTX5&Source
 
   # List executable file formats to be generated.
   output:

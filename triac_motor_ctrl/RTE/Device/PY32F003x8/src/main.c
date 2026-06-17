@@ -30,6 +30,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "bsp.h"
 
 /* Private define ------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
@@ -51,6 +52,8 @@ int main(void)
   
   /* Configure system clock */
   APP_SystemClockConfig();
+
+  bsp_init();
 
   while (1)
   {

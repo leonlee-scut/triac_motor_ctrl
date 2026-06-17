@@ -15,9 +15,10 @@
  */
 #define CMSIS_device_header "py32f0xx.h"
 
-/* ARM::CMSIS:RTOS2:Keil RTX5&Library@5.9.1 */
+/* ARM::CMSIS:RTOS2:Keil RTX5&Source@5.9.1 */
 #define RTE_CMSIS_RTOS2                 /* CMSIS-RTOS2 */
 #define RTE_CMSIS_RTOS2_RTX5            /* CMSIS-RTOS2 Keil RTX5 */
+#define RTE_CMSIS_RTOS2_RTX5_SOURCE     /* CMSIS-RTOS2 Keil RTX5 Source */
 
 
 #endif /* RTE_COMPONENTS_H */
