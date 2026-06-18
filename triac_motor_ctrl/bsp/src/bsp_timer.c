@@ -97,7 +97,7 @@ static int __config_zcd_timer(void)
     // Get ZCD timer clock frequency
     SystemCoreClockUpdate();
     
-    // Ensure SystemCoreClock is updated equal to 24MHz
+    // Ensure SystemCoreClock is updated and equal to 24MHz
     assert(SystemCoreClock == 24000000UL && "System clock is not equal to 24MHz"); 
 
     apb1_div = 1UL;
