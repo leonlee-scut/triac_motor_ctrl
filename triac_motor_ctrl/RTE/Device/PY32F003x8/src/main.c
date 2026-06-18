@@ -38,6 +38,7 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 static void APP_SystemClockConfig(void);
+void APP_Delay(uint32_t delay_ms);
 
 /**
   * @brief  Main program.
@@ -55,9 +56,14 @@ int main(void)
 
   bsp_init();
 
+  bsp_buzzer_on();
+
   while (1)
   {
-    ;
+    APP_Delay(500);
+    bsp_buzzer_off();
+    APP_Delay(500);
+    bsp_buzzer_on();
   }
 }
 
@@ -68,34 +74,56 @@ int main(void)
   */
 static void APP_SystemClockConfig(void)
 {
-  /* Enable HSI */
-  LL_RCC_HSI_Enable();
-  while(LL_RCC_HSI_IsReady() != 1)
-  {
-  }
+    /* Enable HSI */
+    LL_RCC_HSI_Enable();
+    while (LL_RCC_HSI_IsReady() != 1)
+    {
+    }
 
-  /* Set AHB prescaler */
-  LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
+    /* Set HSI calibration value */
+    LL_RCC_HSI_SetCalibFreq(LL_RCC_HSICALIBRATION_24MHz);
+    while (LL_RCC_HSI_IsReady() != 1)
+    {
+    }
 
-  /* Configure HSISYS as system clock source */
-  LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_HSISYS);
-  while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_HSISYS)
-  {
-  }
+    /* Set AHB prescaler */
+    LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
 
-  /* Set HSI calibration value */
-  LL_RCC_HSI_SetCalibFreq(LL_RCC_HSICALIBRATION_24MHz);
-  while (LL_RCC_HSI_IsReady() != 1)
-  {
-  }
+    /* Configure HSISYS as system clock source */
+    LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_HSISYS);
+    while (LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_HSISYS)
+    {
+    }
 
-  /* Set APB1 prescaler*/
-  LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
-//   LL_Init1msTick(8000000);
+    /* Set FLASH latency */
+    LL_FLASH_SetLatency(LL_FLASH_LATENCY_0);
+    // while (LL_FLASH_GetLatency() != LL_FLASH_LATENCY_0)
+    // {
+    // }
 
-  /* Update system clock global variable SystemCoreClock (can also be updated by calling SystemCoreClockUpdate function) */
-//   LL_SetSystemCoreClock(8000000);
-  SystemCoreClockUpdate();
+    /* Set APB1 prescaler*/
+    LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
+    //   LL_Init1msTick(8000000);
+
+    
+    /* 
+     * Update system clock global variable SystemCoreClock (can also be updated 
+     * by calling SystemCoreClockUpdate function) 
+     */
+    //   LL_SetSystemCoreClock(8000000);
+    SystemCoreClockUpdate();
+}
+
+void APP_Delay(uint32_t delay_ms)
+{
+    /*  use nop towait approximately 1 ms  */
+    volatile uint32_t i;
+    i = SystemCoreClock / 1000UL / 4UL / 5UL * delay_ms;
+
+    while (i-- > 0UL)
+    {
+        __NOP();
+    }
 }
 
 /**

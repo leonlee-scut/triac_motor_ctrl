@@ -16,13 +16,17 @@ solution:
       C-CPP:
         # - -gdwarf-5
         - -fshort-enums
+        - -fshort-wchar
         - -funsigned-char
+      ASM:
+        # - -gdwarf-5
+        - -x assembler-with-cpp
+        - -U__MICROLIB
+        - -Wa,armasm,--pd,"__MICROLIB SETA 1"
       Link:
         - --library_type=microlib
-        # ASM:
-        # - -gdwarf-5
 
-        # List the packs that define the device and/or board.
+  # List the packs that define the device and/or board.
   packs:
     - pack: Puya::PY32F0xx_DFP
     - pack: ARM::CMSIS
@@ -69,3 +73,6 @@ solution:
     - SVCall_IRQn: SVC_IRQn
     - GLOBAL_IQ: 16
     # - HSI_VALUE: 24000000
+    - __MICROLIB
+  # define-asm:
+  #   - '"__MICROLIB SETA 1"'

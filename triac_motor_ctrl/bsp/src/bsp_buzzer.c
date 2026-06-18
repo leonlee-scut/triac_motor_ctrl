@@ -43,6 +43,7 @@ void bsp_buzzer_init(void)
 
     // Configure MCO to output LSI divided by 8
     LL_RCC_ConfigMCO(BUZZER_CLK_SOURCE, BUZZER_CLK_DIV);
+    // LL_RCC_ConfigMCO(LL_RCC_MCO1SOURCE_SYSCLK, LL_RCC_MCO1_DIV_1);
 }
 
 
