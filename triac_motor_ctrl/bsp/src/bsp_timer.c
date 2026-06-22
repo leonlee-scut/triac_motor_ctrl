@@ -21,11 +21,13 @@
 #include CMSIS_device_header
 #include "bsp.h"
 #include "py32f0xx_ll.h"
+#include "bsp_timer.h"
 
 #define TIM3_CLK_FREQ           6000000UL       // TIM3 clock frequency in Hz (6MHz)
 
 static int __config_zcd_timer(void);
 static int __config_gate_drv_timer(void);
+static int __config_adc_timer(void);
 
 int bsp_timer_init(void)
 {
@@ -79,6 +81,29 @@ void bsp_zcd_timer_stop(void)
     NVIC_DisableIRQ(ZCD_TIM_IRQn);
 
     CRITICAL_SECTION_END();
+}
+
+
+void bsp_adc_timer_start(void)
+{
+    /* Reset ADC timer counter */
+    LL_TIM_GenerateEvent_UPDATE(ADC_TIM_INSTANCE);
+
+    /* Enable ADC timer channel */
+    LL_TIM_CC_EnableChannel(ADC_TIM_INSTANCE, ADC_TIM_CHANNEL);
+
+    /* Enable ADC timer counter */
+    LL_TIM_EnableCounter(ADC_TIM_INSTANCE);
+}
+
+
+void bsp_adc_timer_stop(void)
+{
+    /* Disable ADC timer channel */
+    LL_TIM_CC_DisableChannel(ADC_TIM_INSTANCE, ADC_TIM_CHANNEL);
+
+    /* Disable ADC timer counter */
+    LL_TIM_DisableCounter(ADC_TIM_INSTANCE);
 }
 
 
@@ -164,7 +189,10 @@ static int __config_zcd_timer(void)
 
     /* Enable main output */
     LL_TIM_EnableAllOutputs(ZCD_TIM_INSTANCE);
-  
+    
+    /* Set TI1FP1 as TRGO source */
+    LL_TIM_SetTriggerOutput(ZCD_TIM_INSTANCE, LL_TIM_TRGO_OC1REF);
+
     /* Enable ZCD timer counter */
     // LL_TIM_EnableCounter(ZCD_TIM_INSTANCE);
 
@@ -207,10 +235,58 @@ static int __config_gate_drv_timer(void)
     LL_GPIO_SetPinMode(GPIOx(GATE_DRV_TIM_PIN), GPIO_PINx(GATE_DRV_TIM_PIN), LL_GPIO_MODE_ALTERNATE);
     LL_GPIO_SetAFPin_0_7(GPIOx(GATE_DRV_TIM_PIN), GPIO_PINx(GATE_DRV_TIM_PIN), GATE_DRV_TIM_PIN_AF);
 
+
     /* Enable gate driver timer channel  */
     // LL_TIM_CC_EnableChannel(ZCD_TIM_INSTANCE, GATE_DRV_TIM_CHANNEL);
 
     return SUCCESS;
+}
+
+int __config_adc_timer(void)
+{
+    /* ADC timer configuration */
+    /* Enable Timer clock */
+    LL_APB1_GRP2_EnableClock(ADC_TIM_CLOCK);
+
+    /* Disable Timer */
+    LL_TIM_DisableCounter(ADC_TIM_INSTANCE);
+
+    /* CK_INT not divided */
+    LL_TIM_SetClockDivision(ADC_TIM_INSTANCE, LL_TIM_CLOCKDIVISION_DIV1);
+
+    /* Up counting */
+    LL_TIM_SetCounterMode(ADC_TIM_INSTANCE, LL_TIM_COUNTERMODE_UP);
+
+    /* Set auto-reload value to ZCD_TIM_AUTORELOAD */
+    LL_TIM_SetAutoReload(ADC_TIM_INSTANCE, ADC_TIM_AUTORELOAD);
+
+    /* CK_CNT Prescaler value */
+    LL_TIM_SetPrescaler(ADC_TIM_INSTANCE, 0UL);
+
+    /* Set ADC timer as slave mode trigger */
+    LL_TIM_SetSlaveMode(ADC_TIM_INSTANCE, LL_TIM_SLAVEMODE_RESET);
+  
+    /* Set input trigger source as ITR2 */
+    LL_TIM_SetTriggerInput(ADC_TIM_INSTANCE, ADC_TIM_TRIGGER_IN);
+
+    /* TRGO output channel configuration */
+    /* Set output polarity to high */
+    LL_TIM_OC_SetPolarity(ADC_TIM_INSTANCE, ADC_TIM_CHANNEL, LL_TIM_OCPOLARITY_HIGH);
+    /* Set idle state to low */
+    LL_TIM_OC_SetIdleState(ADC_TIM_INSTANCE, ADC_TIM_CHANNEL, LL_TIM_OCIDLESTATE_LOW);
+    /* Enable compare preload */
+    LL_TIM_OC_EnablePreload(ADC_TIM_INSTANCE, ADC_TIM_CHANNEL);
+    /* Set compare value to 50% of auto-reload */
+    LL_TIM_OC_SetCompareCH4(ADC_TIM_INSTANCE, ADC_TIM_AUTORELOAD / 2);
+    /* Configure channel as PWM2 mode */
+    LL_TIM_OC_SetMode(ADC_TIM_INSTANCE, ADC_TIM_CHANNEL, LL_TIM_OCMODE_PWM1);
+    /* Set trigger output */
+    LL_TIM_SetTriggerOutput(ADC_TIM_INSTANCE, ADC_TIM_TRGO_SOURCE);
+
+    /* Enable TRGO output channel */
+    LL_TIM_CC_EnableChannel(ADC_TIM_INSTANCE, ADC_TIM_CHANNEL);
+
+    return 0;
 }
 
 void ZCD_TIM_IRQHandler(void)

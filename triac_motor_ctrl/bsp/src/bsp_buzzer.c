@@ -21,7 +21,11 @@
 #include "py32f0xx_ll.h"
 #include "bsp_buzzer.h"
 
-
+/**
+  * @note Use MCO output as buzzer clock source, which is configured to output 
+  *       LSI divided by 8 (4096Hz). This allows us to save one timer peripheral
+  *       for ADC oversampling use.
+  */
 
 void bsp_buzzer_init(void)
 {
