@@ -180,6 +180,9 @@ __STATIC_INLINE void led_toggle(PinName led)
 #define ADC_TIM_AUTORELOAD          (SYSTEM_CORE_CLOCK) / (ADC_TIM_FREQUENCY) - 1UL
 #define ADC_TIM_TRGO_SOURCE         LL_TIM_TRGO_OC4REF
 #define ADC_TIM_TRIGGER_IN          LL_TIM_TS_ITR2                  // TIM3 TRGO -> TIM1 ITR2
+#define ADC_TIM_IRQn                TIM1_BRK_UP_TRG_COM_IRQn
+#define ADC_TIM_IRQHandler          TIM1_BRK_UP_TRG_COM_IRQHandler
+#define ADC_TIM_IRQ_PRIORITY        2
 
 /*
  * TIM3 for line voltage zero cross detection and SCR gate drive timing
@@ -190,10 +193,10 @@ __STATIC_INLINE void led_toggle(PinName led)
 // #define ZCD_TIM_IC_POLARITY         LL_TIM_IC_POLARITY_RISING
 #define ZCD_TIM_IC_POLARITY         LL_TIM_IC_POLARITY_FALLING
 // #define ZCD_TIM_IC_POLARITY         LL_TIM_IC_POLARITY_BOTHEDGE
-#define ZCD_TIM_IC_FILTER           LL_TIM_IC_FILTER_FDIV1_N2
+#define ZCD_TIM_IC_FILTER           LL_TIM_IC_FILTER_FDIV1
 #define ZCD_TIM_PIN                 TIM3_CH1
 #define ZCD_TIM_PIN_AF              LL_GPIO_AF13_TIM3
-#define ZCD_TIM_FREQUENCY           600000UL            // 600KHz
+#define ZCD_TIM_FREQUENCY           6000000UL            // 6000KHz
 #define ZCD_TIM_PRESCALER           (SYSTEM_CORE_CLOCK / ZCD_TIM_FREQUENCY - 1UL)
 #define ZCD_TIM_AUTORELOAD          (ZCD_TIM_FREQUENCY / (2 * AC_LINE_FREQ) - 1UL)
 #define ZCD_TIM_AUTORELOAD_COMPENSATION 125u

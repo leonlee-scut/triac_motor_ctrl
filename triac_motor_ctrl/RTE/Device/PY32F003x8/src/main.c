@@ -56,7 +56,8 @@ int main(void)
 
   bsp_init();
 
-  bsp_buzzer_on();
+  bsp_zcd_timer_start();
+  bsp_adc_timer_start();
 
   while (1)
   {

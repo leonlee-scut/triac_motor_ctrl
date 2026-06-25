@@ -143,7 +143,7 @@ void bsp_tacho_exti_enable(void)
     LL_EXTI_SetEXTISource(TACHO_INPUT_EXTI_CFG_PORT, TACHO_INPUT_EXTI_CFG_LINE);
     LL_EXTI_EnableFallingTrig(TACHO_INPUT_EXTI_LINE);
     
-    CRITICAL_SECTION_ENTER();
+    CRITICAL_SECTION_BEGIN();
 
     LL_EXTI_ClearFlag(TACHO_INPUT_EXTI_LINE);
     LL_EXTI_EnableIT(TACHO_INPUT_EXTI_LINE);
@@ -155,18 +155,18 @@ void bsp_tacho_exti_enable(void)
         NVIC_EnableIRQ(TACHO_INPUT_EXTI_IRQn);
     }
 
-    CRITICAL_SECTION_EXIT();
+    CRITICAL_SECTION_END();
 
 }
 
 void bsp_tacho_exti_disable(void)
 {
-    CRITICAL_SECTION_ENTER();
+    CRITICAL_SECTION_BEGIN();
 
     LL_EXTI_DisableIT(TACHO_INPUT_EXTI_LINE);
     // NVIC_DisableIRQ(TACHO_INPUT_EXTI_IRQn);
 
-    CRITICAL_SECTION_EXIT();
+    CRITICAL_SECTION_END();
 }
 
 void bsp_encoder_exti_enable(void)
@@ -178,7 +178,7 @@ void bsp_encoder_exti_enable(void)
     LL_EXTI_SetEXTISource(ENCODER_B_EXTI_CFG_PORT, ENCODER_B_EXTI_CFG_LINE);
     LL_EXTI_EnableRisingTrig(ENCODER_B_EXTI_LINE);
     
-    CRITICAL_SECTION_ENTER();
+    CRITICAL_SECTION_BEGIN();
 
     LL_EXTI_ClearFlag(ENCODER_A_EXTI_LINE);
     LL_EXTI_ClearFlag(ENCODER_B_EXTI_LINE);
@@ -199,19 +199,19 @@ void bsp_encoder_exti_enable(void)
         NVIC_EnableIRQ(ENCODER_B_EXTI_IRQn);
     }
 
-    CRITICAL_SECTION_EXIT();
+    CRITICAL_SECTION_END();
 }
 
 void bsp_encoder_exti_disable(void)
 {
-    CRITICAL_SECTION_ENTER();
+    CRITICAL_SECTION_BEGIN();
 
     LL_EXTI_DisableIT(ENCODER_A_EXTI_LINE);
     LL_EXTI_DisableIT(ENCODER_B_EXTI_LINE);
     // NVIC_DisableIRQ(ENCODER_A_EXTI_IRQn);
     // NVIC_DisableIRQ(ENCODER_B_EXTI_IRQn);
 
-    CRITICAL_SECTION_EXIT();
+    CRITICAL_SECTION_END();
 }
 
 

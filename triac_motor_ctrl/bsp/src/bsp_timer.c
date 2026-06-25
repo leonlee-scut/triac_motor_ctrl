@@ -33,6 +33,7 @@ static int __config_tacho_timer(void);
 int bsp_timer_init(void)
 {
     __config_zcd_timer();
+    __config_adc_timer();
     
     return SUCCESS;
 }
@@ -91,10 +92,25 @@ void bsp_adc_timer_start(void)
 {
     /* Reset ADC timer counter */
     LL_TIM_GenerateEvent_UPDATE(ADC_TIM_INSTANCE);
+    
+    CRITICAL_SECTION_BEGIN();
 
+    /* Clear ADC timer all interrupt flags */
+    LL_TIM_ClearFlag_UPDATE(ADC_TIM_INSTANCE);
+    
+    /* Enable ADC timer interrupt */
+    LL_TIM_EnableIT_UPDATE(ADC_TIM_INSTANCE);
+    
+    /* ADC timer NVIC configuration */
+    NVIC_ClearPendingIRQ(ADC_TIM_IRQn);
+    NVIC_SetPriority(ADC_TIM_IRQn, ADC_TIM_IRQ_PRIORITY);
+    NVIC_EnableIRQ(ADC_TIM_IRQn);
+
+    CRITICAL_SECTION_END();
+    
     /* Enable ADC timer channel */
     LL_TIM_CC_EnableChannel(ADC_TIM_INSTANCE, ADC_TIM_CHANNEL);
-
+    
     /* Enable ADC timer counter */
     LL_TIM_EnableCounter(ADC_TIM_INSTANCE);
 }
@@ -149,6 +165,11 @@ void bsp_tacho_timer_stop(void)
 }
 
 
+__WEAK void ZCD_TIM_TRIG_Callback(void)
+{
+}
+
+
 __WEAK void ZCD_TIM_CC1_Callback(void)
 {
 }
@@ -183,7 +204,7 @@ static int __config_zcd_timer(void)
     LL_TIM_SetCounterMode(ZCD_TIM_INSTANCE, LL_TIM_COUNTERMODE_UP);
 
     /* Set auto-reload value to ZCD_TIM_AUTORELOAD */
-    LL_TIM_SetAutoReload(ZCD_TIM_INSTANCE, ZCD_TIM_AUTORELOAD - 125u);
+    LL_TIM_SetAutoReload(ZCD_TIM_INSTANCE, ZCD_TIM_AUTORELOAD - ZCD_TIM_AUTORELOAD_COMPENSATION);
 
     /* CK_CNT Prescaler value */
     LL_TIM_SetPrescaler(ZCD_TIM_INSTANCE, ZCD_TIM_PRESCALER);
@@ -245,7 +266,7 @@ static int __config_gate_drv_timer(void)
     /* Enable compare preload */
     LL_TIM_OC_EnablePreload(ZCD_TIM_INSTANCE, GATE_DRV_TIM_CHANNEL);
     /* Set compare value to MAX */
-    LL_TIM_OC_SetCompareCH3(ZCD_TIM_INSTANCE, ZCD_TIM_AUTORELOAD + 1U);
+    LL_TIM_OC_SetCompareCH3(ZCD_TIM_INSTANCE, ZCD_TIM_AUTORELOAD / 4);
     /* Configure channel as PWM2 mode */
     LL_TIM_OC_SetMode(ZCD_TIM_INSTANCE, GATE_DRV_TIM_CHANNEL, LL_TIM_OCMODE_PWM2);
 
@@ -304,6 +325,9 @@ int __config_adc_timer(void)
     /* Enable TRGO output channel */
     LL_TIM_CC_EnableChannel(ADC_TIM_INSTANCE, ADC_TIM_CHANNEL);
 
+    /* Enable master/slave mode */
+    LL_TIM_EnableMasterSlaveMode(ADC_TIM_INSTANCE);
+
     return 0;
 }
 
@@ -333,6 +357,14 @@ int __config_tacho_timer(void)
 
 void ZCD_TIM_IRQHandler(void)
 {
+    if (LL_TIM_IsActiveFlag_TRIG(ZCD_TIM_INSTANCE) != 0U)
+    {
+        LL_TIM_ClearFlag_TRIG(ZCD_TIM_INSTANCE);
+
+        // Handle zero cross detection event here
+        ZCD_TIM_TRIG_Callback();
+    }
+
     if (LL_TIM_IsActiveFlag_CC1(ZCD_TIM_INSTANCE) != 0U)
     {
         LL_TIM_ClearFlag_CC1(ZCD_TIM_INSTANCE);
@@ -353,5 +385,15 @@ void TACHO_TIM_IRQHandler(void)
     }
 }
 
+void ADC_TIM_IRQHandler(void)
+{
+    if (LL_TIM_IsActiveFlag_UPDATE(ADC_TIM_INSTANCE) != 0U)
+    {
+        LL_TIM_ClearFlag_UPDATE(ADC_TIM_INSTANCE);
 
+        // Handle ADC timer event here
+        // User-defined callback function can be called here
+        pinToggle(LED_CPU_STATE);
+    }
+}
 /************* (C) COPYRIGHT South China Univ. of Tech. ****** END OF FILE ****/

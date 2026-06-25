@@ -33,6 +33,7 @@ void bsp_adc_timer_stop(void);
 void bsp_tacho_timer_start(void);
 void bsp_tacho_timer_stop(void);
 
+void ZCD_TIM_TRIG_Callback(void);
 void ZCD_TIM_CC1_Callback(void);
 void TACHO_TIM_UpdateCallback(void);
 
