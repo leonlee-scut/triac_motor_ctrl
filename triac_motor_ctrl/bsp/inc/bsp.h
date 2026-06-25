@@ -41,6 +41,7 @@ extern "C" {
 
 #define AC_LINE_FREQ                AC_LINE_FREQ_60_HZ
 #define SYSTEM_CORE_CLOCK           24000000UL           // 24MHz
+#define EXTI_IRQ_PRIORITY           3
 
 // GPIO for LEDs
 #define LED_RED                     PB6
@@ -64,17 +65,23 @@ extern "C" {
 #define ENCODER_A                   PB5
 #define ENCODER_B                   PF2
 
-#define ENCODER_A_EXTI
-#define ENCODER_B_EXTI  
-
+#define ENCODER_A_EXTI_CFG_PORT     LL_EXTI_CONFIG_PORTB
+#define ENCODER_A_EXTI_CFG_LINE     LL_EXTI_CONFIG_LINE5
 #define ENCODER_A_EXTI_LINE         LL_EXTI_LINE_5
-#define ENCODER_B_EXTI_LINE         LL_EXTI_LINE_2 
+#define ENCODER_A_EXTI_IRQn         EXTI4_15_IRQn
 
-#define LINE_VOLT_ZCD_EXTI          
-#define LINE_VOLT_ZCD_EXTI_LINE     LL_EXTI_LINE_2
-#define LINE_VOLT_ZCD_EXTI_CFG_PORT LL_EXTI_CONFIG_PORTA
-#define LINE_VOLT_ZCD_EXTI_CFG_LINE LL_EXTI_CONFIG_LINE2
-#define LINE_VOLT_ZCD_EXTI_IRQn     EXTI2_3_IRQn
+#define ENCODER_B_EXTI_CFG_PORT     LL_EXTI_CONFIG_PORTF
+#define ENCODER_B_EXTI_CFG_LINE     LL_EXTI_CONFIG_LINE2
+#define ENCODER_B_EXTI_LINE         LL_EXTI_LINE_2
+#define ENCODER_B_EXTI_IRQn         EXTI2_3_IRQn  
+
+#define ENCODER_IRQ_PRIORITY        EXTI_IRQ_PRIORITY
+
+// #define LINE_VOLT_ZCD_EXTI          
+// #define LINE_VOLT_ZCD_EXTI_LINE     LL_EXTI_LINE_2
+// #define LINE_VOLT_ZCD_EXTI_CFG_PORT LL_EXTI_CONFIG_PORTA
+// #define LINE_VOLT_ZCD_EXTI_CFG_LINE LL_EXTI_CONFIG_LINE2
+// #define LINE_VOLT_ZCD_EXTI_IRQn     EXTI2_3_IRQn
 
 #define DI_LIMIT_SW_UP              0
 #define DI_LIMIT_SW_DOWN            1
@@ -87,6 +94,14 @@ extern "C" {
 
 #define IS_SWITCH_ON(state)         ((state) == STATE_SWITCH_ON)
 #define IS_SWITCH_OFF(state)        ((state) == STATE_SWITCH_OFF)
+
+// GPIO for motor speed measurement
+#define TACHO_INPUT                 PB7
+#define TACHO_INPUT_EXTI_CFG_PORT   LL_EXTI_CONFIG_PORTB
+#define TACHO_INPUT_EXTI_CFG_LINE   LL_EXTI_CONFIG_LINE7
+#define TACHO_INPUT_EXTI_LINE       LL_EXTI_LINE_7
+#define TACHO_INPUT_EXTI_IRQn       EXTI4_15_IRQn
+#define TACHO_INPUT_IRQ_PRIORITY    EXTI_IRQ_PRIORITY
 
 // GPIO for analog input
 #define ADC1_IN0                    PA0     // for motor current measurement and limit
@@ -174,19 +189,39 @@ __STATIC_INLINE void led_toggle(PinName led)
 #define ZCD_TIM_CHANNEL             LL_TIM_CHANNEL_CH1
 // #define ZCD_TIM_IC_POLARITY         LL_TIM_IC_POLARITY_RISING
 #define ZCD_TIM_IC_POLARITY         LL_TIM_IC_POLARITY_FALLING
+// #define ZCD_TIM_IC_POLARITY         LL_TIM_IC_POLARITY_BOTHEDGE
+#define ZCD_TIM_IC_FILTER           LL_TIM_IC_FILTER_FDIV1_N2
 #define ZCD_TIM_PIN                 TIM3_CH1
 #define ZCD_TIM_PIN_AF              LL_GPIO_AF13_TIM3
-#define ZCD_TIM_FREQUENCY           6000000UL           // 6MHz, for 1us resolution
+#define ZCD_TIM_FREQUENCY           600000UL            // 600KHz
+#define ZCD_TIM_PRESCALER           (SYSTEM_CORE_CLOCK / ZCD_TIM_FREQUENCY - 1UL)
 #define ZCD_TIM_AUTORELOAD          (ZCD_TIM_FREQUENCY / (2 * AC_LINE_FREQ) - 1UL)
+#define ZCD_TIM_AUTORELOAD_COMPENSATION 125u
+#define ZCD_TIM_TRGO_SOURCE         LL_TIM_TRGO_ENABLE
 #define ZCD_TIM_IRQn                TIM3_IRQn
 #define ZCD_TIM_IRQHandler          TIM3_IRQHandler
-#define ZCD_TIM_IRQPriority         1
+#define ZCD_TIM_IRQ_PRIORITY        0
 
 #define GATE_DRV_TIM_CHANNEL        LL_TIM_CHANNEL_CH3
 #define GATE_DRV_TIM_PWM_MODE       LL_TIM_OCMODE_PWM2
 #define GATE_DRV_TIM_PIN            TIM3_CH3
 #define GATE_DRV_TIM_PIN_AF         LL_GPIO_AF13_TIM3
 
+/*
+ * TIM17 for motor speed measurement
+ */
+#define TACHO_TIM_CLOCK             LL_APB1_GRP2_PERIPH_TIM17
+#define TACHO_TIM_INSTANCE          TIM17
+#define TACHO_TIM_CHANNEL           LL_TIM_CHANNEL_CH1N
+#define TACHO_TIM_IC_POLARITY       LL_TIM_IC_POLARITY_FALLING
+#define TACHO_TIM_PIN               TIM17_CH1N
+#define TACHO_TIM_PIN_AF            LL_GPIO_AF2_TIM17
+#define TACHO_TIM_FREQUENCY         2000000UL           // 2MHz, for 0.5us resolution
+#define TACHO_TIM_PRESCALER         (SYSTEM_CORE_CLOCK / TACHO_TIM_FREQUENCY - 1UL)
+#define TACHO_TIM_AUTORELOAD        0xFFFF
+#define TACHO_TIM_IRQn              TIM17_IRQn
+#define TACHO_TIM_IRQHandler        TIM17_IRQHandler
+#define TACHO_TIM_IRQ_PRIORITY      3
 
 int bsp_init(void);
 

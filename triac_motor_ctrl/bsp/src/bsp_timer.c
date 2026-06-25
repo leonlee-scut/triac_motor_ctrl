@@ -28,6 +28,7 @@
 static int __config_zcd_timer(void);
 static int __config_gate_drv_timer(void);
 static int __config_adc_timer(void);
+static int __config_tacho_timer(void);
 
 int bsp_timer_init(void)
 {
@@ -49,12 +50,13 @@ void bsp_zcd_timer_start(void)
     LL_TIM_ClearFlag_CC1(ZCD_TIM_INSTANCE);
     LL_TIM_ClearFlag_CC3(ZCD_TIM_INSTANCE);
 
-    NVIC_ClearPendingIRQ(ZCD_TIM_IRQn);
-
     /* Enable ZCD timer CC1 interrupt */
-    LL_TIM_EnableIT_CC1(ZCD_TIM_INSTANCE);
+    // LL_TIM_EnableIT_CC1(ZCD_TIM_INSTANCE);
+    LL_TIM_EnableIT_TRIG(ZCD_TIM_INSTANCE);
 
-    NVIC_SetPriority(ZCD_TIM_IRQn, ZCD_TIM_IRQPriority);
+    /* ZCD timer NVIC configuration */
+    NVIC_ClearPendingIRQ(ZCD_TIM_IRQn);
+    NVIC_SetPriority(ZCD_TIM_IRQn, ZCD_TIM_IRQ_PRIORITY);
     NVIC_EnableIRQ(ZCD_TIM_IRQn);
 
     /* Enable ZCD timer channel */
@@ -75,7 +77,8 @@ void bsp_zcd_timer_stop(void)
     /* Disable ZCD timer counter */
     LL_TIM_DisableCounter(ZCD_TIM_INSTANCE);
     /* Disable ZCD timer CC1 interrupt */
-    LL_TIM_DisableIT_CC1(ZCD_TIM_INSTANCE);
+    // LL_TIM_DisableIT_CC1(ZCD_TIM_INSTANCE);
+    LL_TIM_DisableIT_TRIG(ZCD_TIM_INSTANCE);
 
     /* Disable ZCD timer interrupt */
     NVIC_DisableIRQ(ZCD_TIM_IRQn);
@@ -106,13 +109,58 @@ void bsp_adc_timer_stop(void)
     LL_TIM_DisableCounter(ADC_TIM_INSTANCE);
 }
 
+void bsp_tacho_timer_start(void)
+{
+    
+    /* Reset TACHO timer counter */
+    LL_TIM_GenerateEvent_UPDATE(TACHO_TIM_INSTANCE);
+    
+    /* Clear TACHO timer all interrupt flags */
+    LL_TIM_ClearFlag_UPDATE(TACHO_TIM_INSTANCE);
+    
+    /* Enable TACHO timer interrupt */
+    LL_TIM_EnableIT_UPDATE(TACHO_TIM_INSTANCE);
+    
+    CRITICAL_SECTION_BEGIN();
+
+    /* TACHO timer NVIC configuration */
+    NVIC_ClearPendingIRQ(TACHO_TIM_IRQn);
+    NVIC_SetPriority(TACHO_TIM_IRQn, TACHO_TIM_IRQ_PRIORITY);
+    NVIC_EnableIRQ(TACHO_TIM_IRQn);
+
+    /* Enable TACHO timer counter */
+    LL_TIM_EnableCounter(TACHO_TIM_INSTANCE);
+
+    CRITICAL_SECTION_END();
+}
+
+
+void bsp_tacho_timer_stop(void)
+{
+    CRITICAL_SECTION_BEGIN();
+
+    /* Disable TACHO timer counter */
+    LL_TIM_DisableCounter(TACHO_TIM_INSTANCE);
+    
+    /* Disable TACHO timer interrupt */
+    NVIC_DisableIRQ(TACHO_TIM_IRQn);
+
+    CRITICAL_SECTION_END();
+}
+
+
+__WEAK void ZCD_TIM_CC1_Callback(void)
+{
+}
+
+
+__WEAK void TACHO_TIM_UpdateCallback(void)
+{
+}
+
 
 static int __config_zcd_timer(void)
 {
-    uint32_t tim_clk_hz;
-    uint32_t apb1_div;
-    uint32_t prescaler;
-    
     // Enable ZCD timer clock
     LL_APB1_GRP1_EnableClock(ZCD_TIM_CLOCK);
 
@@ -125,38 +173,6 @@ static int __config_zcd_timer(void)
     // Ensure SystemCoreClock is updated and equal to 24MHz
     assert(SystemCoreClock == 24000000UL && "System clock is not equal to 24MHz"); 
 
-    apb1_div = 1UL;
-    switch (LL_RCC_GetAPB1Prescaler())
-    {
-        case LL_RCC_APB1_DIV_2:
-            apb1_div = 2UL;
-            break;
-        case LL_RCC_APB1_DIV_4:
-            apb1_div = 4UL;
-            break;
-        case LL_RCC_APB1_DIV_8:
-            apb1_div = 8UL;
-            break;
-        case LL_RCC_APB1_DIV_16:
-            apb1_div = 16UL;
-            break;
-        default:
-            apb1_div = 1UL;
-            break;
-    }
-
-    tim_clk_hz = SystemCoreClock / apb1_div;
-    if (LL_RCC_GetAPB1Prescaler() != LL_RCC_APB1_DIV_1)
-    {
-        tim_clk_hz *= 2UL;
-    }
-
-    prescaler = (tim_clk_hz / ZCD_TIM_FREQUENCY);
-    if (prescaler == 0UL)
-    {
-        prescaler = 1UL;
-    }
-
     // Configure ZCD timer as one shot mode
     LL_TIM_DisableCounter(ZCD_TIM_INSTANCE);
 
@@ -167,16 +183,16 @@ static int __config_zcd_timer(void)
     LL_TIM_SetCounterMode(ZCD_TIM_INSTANCE, LL_TIM_COUNTERMODE_UP);
 
     /* Set auto-reload value to ZCD_TIM_AUTORELOAD */
-    LL_TIM_SetAutoReload(ZCD_TIM_INSTANCE, ZCD_TIM_AUTORELOAD);
+    LL_TIM_SetAutoReload(ZCD_TIM_INSTANCE, ZCD_TIM_AUTORELOAD - 125u);
 
     /* CK_CNT Prescaler value */
-    LL_TIM_SetPrescaler(ZCD_TIM_INSTANCE, prescaler - 1UL);
+    LL_TIM_SetPrescaler(ZCD_TIM_INSTANCE, ZCD_TIM_PRESCALER);
 
     /* Set ZCD timer as slave mode trigger */
     LL_TIM_SetSlaveMode(ZCD_TIM_INSTANCE,LL_TIM_SLAVEMODE_TRIGGER);
   
-    /* Set input trigger source as TI1FP1 */
-    LL_TIM_SetTriggerInput(ZCD_TIM_INSTANCE,LL_TIM_TS_TI1FP1);
+    /* Set input trigger source as TI1F_ED */
+    LL_TIM_SetTriggerInput(ZCD_TIM_INSTANCE,LL_TIM_TS_TI1F_ED);
 
     /* Trigger/output channel configuration */
     __config_gate_drv_timer();
@@ -191,7 +207,9 @@ static int __config_zcd_timer(void)
     LL_TIM_EnableAllOutputs(ZCD_TIM_INSTANCE);
     
     /* Set TI1FP1 as TRGO source */
-    LL_TIM_SetTriggerOutput(ZCD_TIM_INSTANCE, LL_TIM_TRGO_OC1REF);
+    LL_TIM_SetTriggerOutput(ZCD_TIM_INSTANCE, LL_TIM_TRGO_ENABLE);
+    /* Enable master/slave mode */
+    LL_TIM_EnableMasterSlaveMode(ZCD_TIM_INSTANCE);
 
     /* Enable ZCD timer counter */
     // LL_TIM_EnableCounter(ZCD_TIM_INSTANCE);
@@ -208,7 +226,7 @@ static int __config_gate_drv_timer(void)
     /* Configure channel as input mode */
     LL_TIM_IC_SetActiveInput(ZCD_TIM_INSTANCE, ZCD_TIM_CHANNEL, LL_TIM_ACTIVEINPUT_DIRECTTI);
     /* Configure channel input filter */
-    LL_TIM_IC_SetFilter(ZCD_TIM_INSTANCE, ZCD_TIM_CHANNEL, LL_TIM_IC_FILTER_FDIV16_N8);
+    LL_TIM_IC_SetFilter(ZCD_TIM_INSTANCE, ZCD_TIM_CHANNEL, ZCD_TIM_IC_FILTER);
     
     /* ZCD timer channel input mapped to PA2 */
     // LL_GPIO_SetPinMode(GPIOx(ZCD_TIM_PIN), GPIO_PINx(ZCD_TIM_PIN), LL_GPIO_MODE_INPUT);
@@ -289,13 +307,51 @@ int __config_adc_timer(void)
     return 0;
 }
 
+int __config_tacho_timer(void)
+{
+    /* TACHO timer configuration */
+    /* Enable Timer clock */
+    LL_APB1_GRP2_EnableClock(TACHO_TIM_CLOCK);
+
+    /* Disable Timer */
+    LL_TIM_DisableCounter(TACHO_TIM_INSTANCE);
+
+    /* CK_INT not divided */
+    LL_TIM_SetClockDivision(TACHO_TIM_INSTANCE, LL_TIM_CLOCKDIVISION_DIV1);
+
+    /* Up counting */
+    LL_TIM_SetCounterMode(TACHO_TIM_INSTANCE, LL_TIM_COUNTERMODE_UP);
+
+    /* Set auto-reload value to TACHO_TIM_AUTORELOAD */
+    LL_TIM_SetAutoReload(TACHO_TIM_INSTANCE, TACHO_TIM_AUTORELOAD);
+
+    /* CK_CNT Prescaler value */
+    LL_TIM_SetPrescaler(TACHO_TIM_INSTANCE, TACHO_TIM_PRESCALER);
+
+    return 0;
+}
+
 void ZCD_TIM_IRQHandler(void)
 {
     if (LL_TIM_IsActiveFlag_CC1(ZCD_TIM_INSTANCE) != 0U)
     {
         LL_TIM_ClearFlag_CC1(ZCD_TIM_INSTANCE);
+
         // Handle zero cross detection event here
+        ZCD_TIM_CC1_Callback();
     }
 }
+
+void TACHO_TIM_IRQHandler(void)
+{
+    if (LL_TIM_IsActiveFlag_UPDATE(TACHO_TIM_INSTANCE) != 0U)
+    {
+        LL_TIM_ClearFlag_UPDATE(TACHO_TIM_INSTANCE);
+
+        // Handle tacho event here
+        TACHO_TIM_UpdateCallback();
+    }
+}
+
 
 /************* (C) COPYRIGHT South China Univ. of Tech. ****** END OF FILE ****/
