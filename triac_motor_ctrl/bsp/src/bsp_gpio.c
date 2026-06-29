@@ -215,7 +215,7 @@ void bsp_encoder_exti_disable(void)
 }
 
 
-__WEAK void TACHO_IN_TriggerCallback(uint32_t capture_count)
+__WEAK void TACHO_IN_TriggerCallback(uint16_t cap_cnt)
 {
     // User-defined callback function for TACHO input trigger event
     // This function can be overridden in the user application
@@ -248,8 +248,8 @@ void EXTI4_15_IRQHandler(void)
 
         // Handle TACHO input trigger event
         /* Get the current counter value of the TACHO timer */
-        uint32_t capture_count = LL_TIM_GetCounter(TACHO_TIM_INSTANCE); 
-        TACHO_IN_TriggerCallback(capture_count);
+        uint32_t cap_cnt = LL_TIM_GetCounter(TACHO_TIM_INSTANCE); 
+        TACHO_IN_TriggerCallback(cap_cnt);
     }
 }
 

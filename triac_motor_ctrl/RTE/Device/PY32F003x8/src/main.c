@@ -31,6 +31,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "bsp.h"
+#include "tacho.h"
 
 /* Private define ------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
@@ -59,6 +60,9 @@ int main(void)
   bsp_zcd_timer_start();
   bsp_adc_timer_start();
 
+  TACHO_init(TACHO_TIM_FREQUENCY, TACHO_SENSOR_RESOLUTION);
+  TACHO_start();
+  
   while (1)
   {
     APP_Delay(500);

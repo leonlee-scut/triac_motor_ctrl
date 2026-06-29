@@ -190,17 +190,19 @@ __STATIC_INLINE void led_toggle(PinName led)
 #define ZCD_TIM_CLOCK               LL_APB1_GRP1_PERIPH_TIM3
 #define ZCD_TIM_INSTANCE            TIM3
 #define ZCD_TIM_CHANNEL             LL_TIM_CHANNEL_CH1
-// #define ZCD_TIM_IC_POLARITY         LL_TIM_IC_POLARITY_RISING
-#define ZCD_TIM_IC_POLARITY         LL_TIM_IC_POLARITY_FALLING
+#define ZCD_TIM_IC_POLARITY         LL_TIM_IC_POLARITY_RISING
+// #define ZCD_TIM_IC_POLARITY         LL_TIM_IC_POLARITY_FALLING
 // #define ZCD_TIM_IC_POLARITY         LL_TIM_IC_POLARITY_BOTHEDGE
 #define ZCD_TIM_IC_FILTER           LL_TIM_IC_FILTER_FDIV1
 #define ZCD_TIM_PIN                 TIM3_CH1
 #define ZCD_TIM_PIN_AF              LL_GPIO_AF13_TIM3
-#define ZCD_TIM_FREQUENCY           6000000UL            // 6000KHz
+#define ZCD_TIM_FREQUENCY           600000UL             // 600KHz
 #define ZCD_TIM_PRESCALER           (SYSTEM_CORE_CLOCK / ZCD_TIM_FREQUENCY - 1UL)
 #define ZCD_TIM_AUTORELOAD          (ZCD_TIM_FREQUENCY / (2 * AC_LINE_FREQ) - 1UL)
-#define ZCD_TIM_AUTORELOAD_COMPENSATION 125u
-#define ZCD_TIM_TRGO_SOURCE         LL_TIM_TRGO_ENABLE
+#define ZCD_TIM_AUTORELOAD_COMPENSATION     ZCD_TIM_AUTORELOAD * 5 /200 // 2.5%
+#define ZCD_TIM_TRIGGER_IN          LL_TIM_TS_TI1FP1
+// #define ZCD_TIM_TRGO_SOURCE         LL_TIM_TRGO_ENABLE
+#define ZCD_TIM_TRGO_SOURCE         LL_TIM_TRGO_CC1IF
 #define ZCD_TIM_IRQn                TIM3_IRQn
 #define ZCD_TIM_IRQHandler          TIM3_IRQHandler
 #define ZCD_TIM_IRQ_PRIORITY        0
@@ -225,6 +227,8 @@ __STATIC_INLINE void led_toggle(PinName led)
 #define TACHO_TIM_IRQn              TIM17_IRQn
 #define TACHO_TIM_IRQHandler        TIM17_IRQHandler
 #define TACHO_TIM_IRQ_PRIORITY      3
+
+#define TACHO_SENSOR_RESOLUTION     16u       // 16 pulses per revolution (PPR)
 
 int bsp_init(void);
 

@@ -6,6 +6,7 @@ project:
     - RTE/Device/PY32F003x8/Drivers/PY32F0xx_HAL_Driver/Inc
     - bsp/inc
     - app/inc
+    - driver/inc
 
   groups:
     - group: Source Files
@@ -63,6 +64,9 @@ project:
         - file: bsp/src/bsp_gpio.c
         - file: bsp/src/bsp_timer.c
         - file: bsp/src/bsp_buzzer.c
+    - group: Driver
+      files:
+        - file: driver/src/tacho.c
   components:
     - component: ARM::CMSIS:CORE
     - component: Device:Startup

@@ -151,7 +151,7 @@ void bsp_tacho_exti_disable(void);
 void bsp_encoder_exti_enable(void);
 void bsp_encoder_exti_disable(void);
 
-void TACHO_IN_TriggerCallback(uint32_t capture_count);
+void TACHO_IN_TriggerCallback(uint16_t cap_cnt);
 
 #ifdef __cplusplus
 }

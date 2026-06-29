@@ -34,6 +34,7 @@ int bsp_timer_init(void)
 {
     __config_zcd_timer();
     __config_adc_timer();
+    __config_tacho_timer();
     
     return SUCCESS;
 }
@@ -212,8 +213,8 @@ static int __config_zcd_timer(void)
     /* Set ZCD timer as slave mode trigger */
     LL_TIM_SetSlaveMode(ZCD_TIM_INSTANCE,LL_TIM_SLAVEMODE_TRIGGER);
   
-    /* Set input trigger source as TI1F_ED */
-    LL_TIM_SetTriggerInput(ZCD_TIM_INSTANCE,LL_TIM_TS_TI1F_ED);
+    /* Set input trigger source */
+    LL_TIM_SetTriggerInput(ZCD_TIM_INSTANCE, ZCD_TIM_TRIGGER_IN);
 
     /* Trigger/output channel configuration */
     __config_gate_drv_timer();
@@ -266,7 +267,8 @@ static int __config_gate_drv_timer(void)
     /* Enable compare preload */
     LL_TIM_OC_EnablePreload(ZCD_TIM_INSTANCE, GATE_DRV_TIM_CHANNEL);
     /* Set compare value to MAX */
-    LL_TIM_OC_SetCompareCH3(ZCD_TIM_INSTANCE, ZCD_TIM_AUTORELOAD / 4);
+    // LL_TIM_OC_SetCompareCH3(ZCD_TIM_INSTANCE, ZCD_TIM_AUTORELOAD / 4);
+    LL_TIM_OC_SetCompareCH3(ZCD_TIM_INSTANCE, 1);
     /* Configure channel as PWM2 mode */
     LL_TIM_OC_SetMode(ZCD_TIM_INSTANCE, GATE_DRV_TIM_CHANNEL, LL_TIM_OCMODE_PWM2);
 
@@ -357,7 +359,8 @@ int __config_tacho_timer(void)
 
 void ZCD_TIM_IRQHandler(void)
 {
-    if (LL_TIM_IsActiveFlag_TRIG(ZCD_TIM_INSTANCE) != 0U)
+    if (LL_TIM_IsActiveFlag_TRIG(ZCD_TIM_INSTANCE) != 0U &&
+        LL_TIM_IsEnabledIT_TRIG(ZCD_TIM_INSTANCE) != 0U)
     {
         LL_TIM_ClearFlag_TRIG(ZCD_TIM_INSTANCE);
 
@@ -365,7 +368,8 @@ void ZCD_TIM_IRQHandler(void)
         ZCD_TIM_TRIG_Callback();
     }
 
-    if (LL_TIM_IsActiveFlag_CC1(ZCD_TIM_INSTANCE) != 0U)
+    if (LL_TIM_IsActiveFlag_CC1(ZCD_TIM_INSTANCE) != 0U &&
+        LL_TIM_IsEnabledIT_CC1(ZCD_TIM_INSTANCE) != 0U)
     {
         LL_TIM_ClearFlag_CC1(ZCD_TIM_INSTANCE);
 
@@ -376,7 +380,8 @@ void ZCD_TIM_IRQHandler(void)
 
 void TACHO_TIM_IRQHandler(void)
 {
-    if (LL_TIM_IsActiveFlag_UPDATE(TACHO_TIM_INSTANCE) != 0U)
+    if (LL_TIM_IsActiveFlag_UPDATE(TACHO_TIM_INSTANCE) != 0U &&
+        LL_TIM_IsEnabledIT_UPDATE(TACHO_TIM_INSTANCE) != 0U)
     {
         LL_TIM_ClearFlag_UPDATE(TACHO_TIM_INSTANCE);
 
@@ -387,7 +392,8 @@ void TACHO_TIM_IRQHandler(void)
 
 void ADC_TIM_IRQHandler(void)
 {
-    if (LL_TIM_IsActiveFlag_UPDATE(ADC_TIM_INSTANCE) != 0U)
+    if (LL_TIM_IsActiveFlag_UPDATE(ADC_TIM_INSTANCE) != 0U &&
+        LL_TIM_IsEnabledIT_UPDATE(ADC_TIM_INSTANCE) != 0U)
     {
         LL_TIM_ClearFlag_UPDATE(ADC_TIM_INSTANCE);
 
@@ -396,4 +402,19 @@ void ADC_TIM_IRQHandler(void)
         pinToggle(LED_CPU_STATE);
     }
 }
+
+
+void TACHO_hwStart(void)
+{
+    bsp_tacho_timer_start();
+    bsp_tacho_exti_enable();
+}
+
+
+void TACHO_hwStop(void)
+{
+    bsp_tacho_exti_disable();
+    bsp_tacho_timer_stop();
+}
+
 /************* (C) COPYRIGHT South China Univ. of Tech. ****** END OF FILE ****/
