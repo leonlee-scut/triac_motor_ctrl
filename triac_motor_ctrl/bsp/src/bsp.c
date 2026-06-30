@@ -71,4 +71,15 @@ int bsp_init(void)
     return SUCCESS;
 }
 
+void bsp_delay_ms(uint32_t ms)
+{
+    /*  use nop towait approximately 1 ms  */
+    __IO uint32_t i = SystemCoreClock / 1000UL / 4UL / 5UL * ms;
+
+    while (i-- > 0UL)
+    {
+        __NOP();
+    }
+}
+
 /************* (C) COPYRIGHT South China Univ. of Tech. ****** END OF FILE ****/

@@ -17,11 +17,8 @@
   * 	2026/06/15	0.1			Leon Lee		Preliminary version.
   */
 
-#include "RTE_Components.h"
-#include CMSIS_device_header
-#include "bsp.h"
 #include "py32f0xx_ll.h"
-#include "bsp_timer.h"
+#include "bsp.h"
 
 #define TIM3_CLK_FREQ           6000000UL       // TIM3 clock frequency in Hz (6MHz)
 
@@ -166,6 +163,31 @@ void bsp_tacho_timer_stop(void)
 }
 
 
+void bsp_setGateDrvTimerCompareValue(uint16_t compare_value)
+{
+    /*
+     * Ensure the compare value is not zero to avoid the gate driver output 
+     * continuously on.
+     */
+    if (compare_value < (GATE_DRV_TIM_MAX_COMPARE_VALUE + 1))
+    {
+        compare_value += 1;
+    }
+    else
+    {
+        compare_value = GATE_DRV_TIM_MAX_COMPARE_VALUE + 1;
+    }
+
+    GATE_DRV_TIM_SET_COMPARE(compare_value);
+}
+
+
+uint16_t bsp_getMaxGateDrvTimerCompareValue(void)
+{
+    return GATE_DRV_TIM_MAX_COMPARE_VALUE;
+}
+
+
 __WEAK void ZCD_TIM_TRIG_Callback(void)
 {
 }
@@ -229,7 +251,7 @@ static int __config_zcd_timer(void)
     LL_TIM_EnableAllOutputs(ZCD_TIM_INSTANCE);
     
     /* Set TI1FP1 as TRGO source */
-    LL_TIM_SetTriggerOutput(ZCD_TIM_INSTANCE, LL_TIM_TRGO_ENABLE);
+    LL_TIM_SetTriggerOutput(ZCD_TIM_INSTANCE, ZCD_TIM_TRGO_SOURCE);
     /* Enable master/slave mode */
     LL_TIM_EnableMasterSlaveMode(ZCD_TIM_INSTANCE);
 
@@ -267,8 +289,8 @@ static int __config_gate_drv_timer(void)
     /* Enable compare preload */
     LL_TIM_OC_EnablePreload(ZCD_TIM_INSTANCE, GATE_DRV_TIM_CHANNEL);
     /* Set compare value to MAX */
-    // LL_TIM_OC_SetCompareCH3(ZCD_TIM_INSTANCE, ZCD_TIM_AUTORELOAD / 4);
-    LL_TIM_OC_SetCompareCH3(ZCD_TIM_INSTANCE, 1);
+    LL_TIM_OC_SetCompareCH3(ZCD_TIM_INSTANCE, GATE_DRV_TIM_MAX_COMPARE_VALUE + 1);
+    // LL_TIM_OC_SetCompareCH3(ZCD_TIM_INSTANCE, 1);
     /* Configure channel as PWM2 mode */
     LL_TIM_OC_SetMode(ZCD_TIM_INSTANCE, GATE_DRV_TIM_CHANNEL, LL_TIM_OCMODE_PWM2);
 
@@ -282,6 +304,7 @@ static int __config_gate_drv_timer(void)
 
     return SUCCESS;
 }
+
 
 int __config_adc_timer(void)
 {

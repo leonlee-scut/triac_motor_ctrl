@@ -41,7 +41,7 @@ solution:
             - project-context: triac_motor_ctrl.Debug
           debugger:
             name: Keil uVision
-            uv4: c:/GNU/Keil_v5/UV4/UV4.exe
+            uv4: c:/GNU/Keil/UV4/UV4.exe
 
   # List of different build configurations.
   build-types:

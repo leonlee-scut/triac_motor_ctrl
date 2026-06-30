@@ -31,6 +31,7 @@
 #include "bsp_gpio.h"
 #include "bsp_timer.h"
 #include "bsp_buzzer.h"
+#include "bsp_adc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,7 +42,7 @@ extern "C" {
 
 #define AC_LINE_FREQ                AC_LINE_FREQ_60_HZ
 #define SYSTEM_CORE_CLOCK           24000000UL           // 24MHz
-#define EXTI_IRQ_PRIORITY           3
+#define EXTI_IRQ_PRIORITY           1
 
 // GPIO for LEDs
 #define LED_RED                     PB6
@@ -158,18 +159,34 @@ __STATIC_INLINE void led_toggle(PinName led)
 /*
  * ADC
  */
-#define ADC_CLOCK                   LL_APB2_GRP1_PERIPH_ADC
+#define ADC_CLOCK                   LL_APB1_GRP2_PERIPH_ADC1
 #define ADC_INSTANCE                ADC1
 #define ADC_CLOCK_SOURCE            LL_ADC_CLOCK_SYNC_PCLK_DIV8     // 3MHz
 #define ADC_CHANNEL                 LL_ADC_CHANNEL_0
 #define ADC_RESOLUTION              LL_ADC_RESOLUTION_12B           // 12-bit
+#define ADC_DATA_ALIGN              LL_ADC_DATA_ALIGN_RIGHT
 #define ADC_SAMPLING_TIME           LL_ADC_SAMPLINGTIME_13CYCLES_5  // 13.5 ADC clock cycles
 #define ADC_TRIGGER_SOURCE          LL_ADC_REG_TRIG_EXT_TIM1_CH4
 #define ADC_TRIGGER_POLARITY        LL_ADC_REG_TRIG_EXT_RISING
-#define ADC_CONVERSION_MODE         LL_ADC_CONV_SINGLE
+#define ADC_CONVERSION_MODE         LL_ADC_REG_CONV_SINGLE
 #define ADC_OVERSAMPLING_RATIO      (64u)
 #define ADC_CHANNEL_GPIO_PIN        ADC1_IN0
 
+#define ADC_DMA_TRANSFER_MODE       LL_ADC_REG_DMA_TRANSFER_LIMITED
+
+/*
+ * DMA
+ */
+#define ADC_DMA_CLOCK               LL_AHB1_GRP1_PERIPH_DMA1
+#define ADC_DMA_INSTANCE            DMA1
+#define ADC_DMA_CHANNEL             LL_DMA_CHANNEL_1
+#define ADC_DMA_PRIORITY            LL_DMA_PRIORITY_HIGH
+// #define ADC_DMA_MODE                LL_DMA_MODE_CIRCULAR
+#define ADC_DMA_MODE                LL_DMA_MODE_NORMAL
+#define ADC_DMA_MEMORY_INC_MODE     LL_DMA_MEMORY_INCREMENT
+#define ADC_DMA_IRQn                DMA1_Channel1_IRQn
+#define ADC_DMA_IRQ_PRIORITY        2
+#define ADC_DMA_IRQ_HANDLER         DMA1_Channel1_IRQHandler
 /*
  * TIM1 for ADC oversampling trigger
  */
@@ -199,7 +216,7 @@ __STATIC_INLINE void led_toggle(PinName led)
 #define ZCD_TIM_FREQUENCY           600000UL             // 600KHz
 #define ZCD_TIM_PRESCALER           (SYSTEM_CORE_CLOCK / ZCD_TIM_FREQUENCY - 1UL)
 #define ZCD_TIM_AUTORELOAD          (ZCD_TIM_FREQUENCY / (2 * AC_LINE_FREQ) - 1UL)
-#define ZCD_TIM_AUTORELOAD_COMPENSATION     ZCD_TIM_AUTORELOAD * 5 /200 // 2.5%
+#define ZCD_TIM_AUTORELOAD_COMPENSATION     (ZCD_TIM_AUTORELOAD * 5 /200) // 2.5%
 #define ZCD_TIM_TRIGGER_IN          LL_TIM_TS_TI1FP1
 // #define ZCD_TIM_TRGO_SOURCE         LL_TIM_TRGO_ENABLE
 #define ZCD_TIM_TRGO_SOURCE         LL_TIM_TRGO_CC1IF
@@ -211,6 +228,8 @@ __STATIC_INLINE void led_toggle(PinName led)
 #define GATE_DRV_TIM_PWM_MODE       LL_TIM_OCMODE_PWM2
 #define GATE_DRV_TIM_PIN            TIM3_CH3
 #define GATE_DRV_TIM_PIN_AF         LL_GPIO_AF13_TIM3
+#define GATE_DRV_TIM_SET_COMPARE(value) LL_TIM_OC_SetCompareCH3(ZCD_TIM_INSTANCE, value);
+#define GATE_DRV_TIM_MAX_COMPARE_VALUE  (ZCD_TIM_AUTORELOAD - 2 * ZCD_TIM_AUTORELOAD_COMPENSATION)
 
 /*
  * TIM17 for motor speed measurement
@@ -221,16 +240,30 @@ __STATIC_INLINE void led_toggle(PinName led)
 #define TACHO_TIM_IC_POLARITY       LL_TIM_IC_POLARITY_FALLING
 #define TACHO_TIM_PIN               TIM17_CH1N
 #define TACHO_TIM_PIN_AF            LL_GPIO_AF2_TIM17
-#define TACHO_TIM_FREQUENCY         2000000UL           // 2MHz, for 0.5us resolution
+#define TACHO_TIM_FREQUENCY         1000000UL           // 1MHz, for 1us resolution
 #define TACHO_TIM_PRESCALER         (SYSTEM_CORE_CLOCK / TACHO_TIM_FREQUENCY - 1UL)
 #define TACHO_TIM_AUTORELOAD        0xFFFF
 #define TACHO_TIM_IRQn              TIM17_IRQn
 #define TACHO_TIM_IRQHandler        TIM17_IRQHandler
 #define TACHO_TIM_IRQ_PRIORITY      3
 
-#define TACHO_SENSOR_RESOLUTION     16u       // 16 pulses per revolution (PPR)
+#define TACHO_SENSOR_RESOLUTION     3u        // 3 pulses per revolution (PPR)
+
+
+/*
+ * IRQ priority sorting: lower number means higher priority
+ *   0: ZCD trigger input interrupt (highest priority)
+ *   1: TACHO trigger input interrupt (i.e. EXTI)
+ *   2: ADC DMA transfer complete interrupt
+ *   3: TACHO timer overflow interrupt (lowest priority)
+ */
+#define ZCD_TRIG_PRIORITY           ZCD_TIM_IRQ_PRIORITY
+#define TACHO_TRIG_PRIORITY         EXTI_IRQ_PRIORITY
+#define ADC_COMPLETE_PRIORITY       ADC_DMA_IRQ_PRIORITY
+#define TACHO_TIM_OVF_PRIORITY      TACHO_TIM_IRQ_PRIORITY
 
 int bsp_init(void);
+void bsp_delay_ms(uint32_t ms); 
 
 #ifdef __cplusplus
 }

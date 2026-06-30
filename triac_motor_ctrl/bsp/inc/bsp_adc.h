@@ -1,9 +1,9 @@
 /**
-  * @file bsp_timer.h
-  * @brief 
+  * @file bsp_adc.h
+  * @brief Board support package for ADC control.
   * @author Leon Lee (leonlee.scut@outlook.com)
   * @version 0.1
-  * @date 2026/06/15
+  * @date 2026/06/29
   * 
   * @copyright Copyright (c) 2026 South China University of Technology.
   * All rights reserved.
@@ -14,34 +14,30 @@
   * 
   * @par History:
   * 	Date		Version		Author			Description
-  * 	2026/06/15	0.1			Leon Lee		Preliminary version.
+  * 	2026/06/29	0.1			Leon Lee		Preliminary version.
   */
 
-#ifndef __BSP_TIMER_H__
-#define __BSP_TIMER_H__
+#ifndef __BSP_ADC_H__
+#define __BSP_ADC_H__
 
-// #include 
+#include "IQmathLib.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* extern "C" */
 
-int bsp_timer_init(void);
-void bsp_zcd_timer_start(void);
-void bsp_zcd_timer_stop(void);
-void bsp_adc_timer_start(void);
-void bsp_adc_timer_stop(void);
-void bsp_tacho_timer_start(void);
-void bsp_tacho_timer_stop(void);
+int bsp_adc_init(void);
+void bsp_adc_start(void);
+void bsp_adc_stop(void);
+void bsp_adc_restart(void);
 
-void bsp_setGateDrvTimerCompareValue(uint16_t compare_value);
-uint16_t bsp_getMaxGateDrvTimerCompareValue(void);
-
-void ZCD_TIM_TRIG_Callback(void);
-void ZCD_TIM_CC1_Callback(void);
-void TACHO_TIM_UpdateCallback(void);
+uint16_t *bsp_adc_getRawDataArray(void);
+uint16_t bsp_adc_getOversampleRatio(void);
+_iq16 bsp_adc_getFilteredData(void);
 
 #ifdef __cplusplus
 }
 #endif /* extern "C" */
-#endif // __BSP_TIMER_H__
+
+#endif // __BSP_ADC_H__
 /************* (C) COPYRIGHT South China Univ. of Tech. ****** END OF FILE ****/

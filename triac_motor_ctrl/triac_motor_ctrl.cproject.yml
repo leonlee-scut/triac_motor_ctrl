@@ -64,6 +64,7 @@ project:
         - file: bsp/src/bsp_gpio.c
         - file: bsp/src/bsp_timer.c
         - file: bsp/src/bsp_buzzer.c
+        - file: bsp/src/bsp_adc.c
     - group: Driver
       files:
         - file: driver/src/tacho.c
