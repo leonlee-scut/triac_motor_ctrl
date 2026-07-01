@@ -35,6 +35,7 @@ uint16_t *bsp_adc_getRawDataArray(void);
 uint16_t bsp_adc_getOversampleRatio(void);
 _iq16 bsp_adc_getFilteredData(void);
 
+void ADC_CompleteCallback(_iq16 filtered_data);
 #ifdef __cplusplus
 }
 #endif /* extern "C" */

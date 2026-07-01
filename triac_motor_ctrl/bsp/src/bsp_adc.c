@@ -270,7 +270,7 @@ __STATIC_INLINE _iq16 __filter(void)
 {
     register int32_t sum = 0;
     register uint32_t len = ADC_OVERSAMPLING_RATIO;
-    register uint16_t *raw_data = __raw_datas;
+    register __IO uint16_t *raw_data = __raw_datas;
 
     while (len--)
     {
