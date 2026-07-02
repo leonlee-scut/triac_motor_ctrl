@@ -37,12 +37,16 @@
 extern "C" {
 #endif /* extern "C" */
 
+// System power supply voltage in millivolts (mV)
+#define BSP_VCC_MV                  5000u                // 5000mV, 
+
 #define AC_LINE_FREQ_50_HZ          (50u)
 #define AC_LINE_FREQ_60_HZ          (60u)
 
 #define AC_LINE_FREQ                AC_LINE_FREQ_60_HZ
 #define SYSTEM_CORE_CLOCK           24000000UL           // 24MHz
 #define EXTI_IRQ_PRIORITY           1
+
 
 // GPIO for LEDs
 #define LED_RED                     PB6
@@ -167,12 +171,15 @@ __STATIC_INLINE void led_toggle(PinName led)
 #define ADC_DATA_ALIGN              LL_ADC_DATA_ALIGN_RIGHT
 #define ADC_SAMPLING_TIME           LL_ADC_SAMPLINGTIME_13CYCLES_5  // 13.5 ADC clock cycles
 #define ADC_TRIGGER_SOURCE          LL_ADC_REG_TRIG_EXT_TIM1_CH4
-#define ADC_TRIGGER_POLARITY        LL_ADC_REG_TRIG_EXT_RISING
+// #define ADC_TRIGGER_POLARITY        LL_ADC_REG_TRIG_EXT_RISING
+#define ADC_TRIGGER_POLARITY        LL_ADC_REG_TRIG_EXT_FALLING
 #define ADC_CONVERSION_MODE         LL_ADC_REG_CONV_SINGLE
 #define ADC_OVERSAMPLING_RATIO      (64u)
 #define ADC_CHANNEL_GPIO_PIN        ADC1_IN0
 
 #define ADC_DMA_TRANSFER_MODE       LL_ADC_REG_DMA_TRANSFER_LIMITED
+#define ADC_REF_VOLTAGE_MV          BSP_VCC_MV
+
 
 /*
  * DMA

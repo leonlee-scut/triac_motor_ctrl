@@ -34,8 +34,13 @@ void bsp_adc_restart(void);
 uint16_t *bsp_adc_getRawDataArray(void);
 uint16_t bsp_adc_getOversampleRatio(void);
 _iq16 bsp_adc_getFilteredData(void);
+uint16_t bsp_adc_getResolution(void);
+uint16_t bsp_adc_getReferenceVoltageMv(void);
 
-void ADC_CompleteCallback(_iq16 filtered_data);
+void ADC_CompleteCallback(_iq16    filtered_data, 
+                          uint16_t adc_bits, 
+                          uint16_t adc_ref_voltage_mv);
+
 #ifdef __cplusplus
 }
 #endif /* extern "C" */

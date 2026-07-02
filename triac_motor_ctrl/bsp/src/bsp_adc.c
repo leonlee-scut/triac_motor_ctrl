@@ -21,10 +21,14 @@
 #include "bsp.h"
 #include "bsp_adc.h"
 
+#define ADC_FULLSCALE_VALUE         (__LL_ADC_DIGITAL_SCALE(ADC_RESOLUTION))
+#define ADC_RESOLUTION_BITS         (12u - ((ADC_RESOLUTION) << 1u))
 
 #define ADC_CALIBRATION_TIMEOUT_MS  10
 #define ADC_CALIBRATION_TIMES       5
+#define ADC_REF_CALIBRATION_TIMES   16
 
+#define VAR_CONVERTED_DATA_INIT_VALUE    (__LL_ADC_DIGITAL_SCALE(ADC_RESOLUTION) + 1)
 /*
  * Public variables
  */
@@ -34,15 +38,65 @@
  */
 static __IO uint16_t __raw_datas[ADC_OVERSAMPLING_RATIO] = {0}; // Buffer to store ADC converted data
 static __IO _iq16    __filtered_data = 0; // Filtered ADC data after oversampling and filtering
+static __IO uint16_t __vref_mv = ADC_REF_VOLTAGE_MV; // Reference voltage in millivolts
 
+/*
+ * Private functions
+ */
 static void __adc_config(void);
+static void __adc_config_VREFINT(void);
 static void __adc_gpio_config(void);
 static void __adc_dma_config(void);
 static void __adc_calibration(void);
+static void __adc_vref_measurement(void);
 static void __quick_sort(int32_t arr[], int32_t length);
 
-__STATIC_INLINE void __adc_stop(void);
-__STATIC_INLINE _iq16 __filter(void);
+
+__STATIC_INLINE void __adc_enable(void)
+{
+    /* Enable ADC */
+    LL_ADC_Enable(ADC_INSTANCE);
+
+    /* Wait for ADC ready */
+    bsp_delay_ms(1);
+}
+
+
+__STATIC_INLINE void __adc_disable(void)
+{
+    /* Disable ADC */
+    LL_ADC_Disable(ADC_INSTANCE);
+
+    /* Wait for ADC disabled */
+    bsp_delay_ms(1);
+}
+
+
+__STATIC_INLINE void __adc_stop(void)
+{
+    // Stop ADC conversion
+    LL_ADC_REG_StopConversion(ADC_INSTANCE);
+
+    // Disable DMA transfer
+    LL_DMA_DisableChannel(ADC_DMA_INSTANCE, ADC_DMA_CHANNEL);
+}
+
+
+__STATIC_INLINE _iq16 __filter(void)
+{
+    register int32_t sum = 0;
+    register uint32_t len = ADC_OVERSAMPLING_RATIO;
+    register __IO uint16_t *raw_data = __raw_datas;
+
+    while (len--)
+    {
+        sum += *raw_data++;
+    }
+
+    sum *= (1ul << 16) / ADC_OVERSAMPLING_RATIO;    // Convert to _iq16 format
+    return (_iq16)sum;
+}
+
 
 int bsp_adc_init(void)
 {
@@ -54,6 +108,9 @@ int bsp_adc_init(void)
 
     /* ADC calibration */
     __adc_calibration();
+
+    /* ADC external Vref (VCC) measurement */
+    __adc_vref_measurement();
 
     /* ADC GPIO config */
     __adc_gpio_config();
@@ -103,44 +160,79 @@ void bsp_adc_restart(void)
 static void __adc_config(void)
 {
     /* ADC channel and clock source should be configured when ADEN=0, others should be configured when ADSTART=0 */
+    LL_ADC_InitTypeDef ADC_InitStruct = { 0 };
+    LL_ADC_REG_InitTypeDef ADC_REG_InitStruct = { 0 };
+
     /* Configure internal conversion channel */
     LL_ADC_SetCommonPathInternalCh(__LL_ADC_COMMON_INSTANCE(ADC1), LL_ADC_PATH_INTERNAL_NONE);
 
-    /* Set ADC clock */
-    LL_ADC_SetClock(ADC1, ADC_CLOCK_SOURCE);
-
-    /* Set 12-bit resolution */
-    LL_ADC_SetResolution(ADC1, ADC_RESOLUTION);
-
-    /* Right-alignment for converted data */
-    LL_ADC_SetDataAlignment(ADC1, ADC_DATA_ALIGN);
-
-    /* Set low power mode to none */
-    LL_ADC_SetLowPowerMode(ADC1, LL_ADC_LP_MODE_NONE);
+    /*Initialize ADC partial features*/
+    ADC_InitStruct.Clock         = ADC_CLOCK_SOURCE;
+    ADC_InitStruct.DataAlignment = ADC_DATA_ALIGN;
+    ADC_InitStruct.LowPowerMode  = LL_ADC_LP_MODE_NONE;
+    ADC_InitStruct.Resolution    = ADC_RESOLUTION;
+    LL_ADC_Init(ADC1, &ADC_InitStruct);
 
     /* Set channel conversion time */
     LL_ADC_SetSamplingTimeCommonChannels(ADC1, ADC_SAMPLING_TIME);
 
-    /* Set the trigger source as TIM1 CH4 */
-    LL_ADC_REG_SetTriggerSource(ADC1, ADC_TRIGGER_SOURCE);
+    /* Initialize ADC regular features */
+    ADC_REG_InitStruct.ContinuousMode   = ADC_CONVERSION_MODE;
+    ADC_REG_InitStruct.DMATransfer      = ADC_DMA_TRANSFER_MODE;
+    ADC_REG_InitStruct.Overrun          = LL_ADC_REG_OVR_DATA_OVERWRITTEN;
+    ADC_REG_InitStruct.SequencerDiscont = LL_ADC_REG_SEQ_DISCONT_DISABLE;
+    ADC_REG_InitStruct.TriggerSource    = ADC_TRIGGER_SOURCE;
+    LL_ADC_REG_Init(ADC1, &ADC_REG_InitStruct);
+
+    LL_ADC_REG_SetSequencerScanDirection(ADC1, LL_ADC_REG_SEQ_SCAN_DIR_FORWARD);
 
     /* Set trigger edge as rising edge */
     LL_ADC_REG_SetTriggerEdge(ADC1, ADC_TRIGGER_POLARITY);
 
-    /* Single sampling */
-    LL_ADC_REG_SetContinuousMode(ADC1, ADC_CONVERSION_MODE);
-
-    /* Set DMA mode to circular mode and enable it */
-    LL_ADC_REG_SetDMATransfer(ADC1, ADC_DMA_TRANSFER_MODE);
-
-    /* Set overrun management mode to data overwritten */
-    LL_ADC_REG_SetOverrun(ADC1, LL_ADC_REG_OVR_DATA_OVERWRITTEN);
-
-    /* Set discontinuous mode to disabled */
-    LL_ADC_REG_SetSequencerDiscont(ADC1, LL_ADC_REG_SEQ_DISCONT_DISABLE);
-
     /* Set conversion channel */
     LL_ADC_REG_SetSequencerChannels(ADC1, ADC_CHANNEL);
+}
+
+
+void __adc_config_VREFINT(void)
+{
+    __IO uint32_t wait_loop_index = 0;
+    LL_ADC_InitTypeDef ADC_InitStruct = { 0 };
+    LL_ADC_REG_InitTypeDef ADC_REG_InitStruct = { 0 };
+
+    /*ADC channel and clock source should be configured when ADEN=0, others should be configured when ADSTART=0*/
+    /*Initialize ADC partial features*/
+    ADC_InitStruct.Clock         = LL_ADC_CLOCK_SYNC_PCLK_DIV4;
+    ADC_InitStruct.DataAlignment = LL_ADC_DATA_ALIGN_RIGHT;
+    ADC_InitStruct.LowPowerMode  = LL_ADC_LP_MODE_NONE;
+    ADC_InitStruct.Resolution    = LL_ADC_RESOLUTION_12B;
+    LL_ADC_Init(ADC1, &ADC_InitStruct);
+    
+    /* Set channel conversion time */
+    LL_ADC_SetSamplingTimeCommonChannels(ADC1, LL_ADC_SAMPLINGTIME_239CYCLES_5);
+
+    /* Initialize ADC regular features */
+    ADC_REG_InitStruct.ContinuousMode   = LL_ADC_REG_CONV_CONTINUOUS;
+    ADC_REG_InitStruct.DMATransfer      = LL_ADC_REG_DMA_TRANSFER_NONE;
+    ADC_REG_InitStruct.Overrun          = LL_ADC_REG_OVR_DATA_OVERWRITTEN;
+    ADC_REG_InitStruct.SequencerDiscont = LL_ADC_REG_SEQ_DISCONT_DISABLE;
+    ADC_REG_InitStruct.TriggerSource    = LL_ADC_REG_TRIG_SOFTWARE;
+    LL_ADC_REG_Init(ADC1, &ADC_REG_InitStruct);
+
+    LL_ADC_REG_SetSequencerScanDirection(ADC1, LL_ADC_REG_SEQ_SCAN_DIR_BACKWARD);
+
+    /* Set common parameters for ADC */
+    LL_ADC_SetCommonPathInternalCh(__LL_ADC_COMMON_INSTANCE(ADC1), LL_ADC_PATH_INTERNAL_VREFINT);
+    
+    /* Wait for stabilization of Vrefint */
+    wait_loop_index = ((LL_ADC_DELAY_VREFINT_STAB_US * (SystemCoreClock / (100000 * 2))) / 10);
+    while (wait_loop_index != 0)
+    {
+        wait_loop_index--;
+    }
+
+    /* Set channel 12 as conversion channel */
+    LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_VREFINT);
 }
 
 static void __adc_gpio_config(void)
@@ -154,6 +246,8 @@ static void __adc_gpio_config(void)
 static void __adc_dma_config(void)
 {
     /* ADC DMA config */
+    LL_DMA_InitTypeDef DMA_InitStruct = { 0 };
+    
     /* Enable DMA1 clock */
     LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA1);
 
@@ -163,39 +257,20 @@ static void __adc_dma_config(void)
     /* ADC corresponds to channel LL_DMA_CHANNEL_1 */
     LL_SYSCFG_SetDMARemap_CH1(LL_SYSCFG_DMA_MAP_ADC);
 
-    /* Configure DMA data transfer direction as peripheral to memory */
-    LL_DMA_SetDataTransferDirection(DMA1, LL_DMA_CHANNEL_1, LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
-
-    /* Configure DMA priority as high */
-    LL_DMA_SetChannelPriorityLevel(DMA1, LL_DMA_CHANNEL_1, LL_DMA_PRIORITY_HIGH);
-
-    /* Configure DMA in non-circular mode */
-    LL_DMA_SetMode(DMA1, LL_DMA_CHANNEL_1, ADC_DMA_MODE);
-
-    /* Configure DMA peripheral increment mode as no increment */
-    LL_DMA_SetPeriphIncMode(DMA1, LL_DMA_CHANNEL_1, LL_DMA_PERIPH_NOINCREMENT);
-
-    /* Configure DMA memory increment mode as increment */
-    LL_DMA_SetMemoryIncMode(DMA1, LL_DMA_CHANNEL_1, ADC_DMA_MEMORY_INC_MODE);
-
-    /* Configure DMA peripheral data size as half-word */
-    LL_DMA_SetPeriphSize(DMA1, LL_DMA_CHANNEL_1, LL_DMA_PDATAALIGN_HALFWORD);
-
-    /* Configure DMA memory data size as half-word */
-    LL_DMA_SetMemorySize(DMA1, LL_DMA_CHANNEL_1, LL_DMA_MDATAALIGN_HALFWORD);
-
-    /* Configure DMA transfer length to ADC_OVERSAMPLING_RATIO */
-    LL_DMA_SetDataLength(DMA1, LL_DMA_CHANNEL_1, ADC_OVERSAMPLING_RATIO);
-
-    /* Configure DMA peripheral and memory addresses */
-    LL_DMA_ConfigAddresses(DMA1, 
-                           LL_DMA_CHANNEL_1, 
-                           (uint32_t)&ADC1->DR, 
-                           (uint32_t)&__raw_datas, 
-                           LL_DMA_GetDataTransferDirection(DMA1, LL_DMA_CHANNEL_1));
+    DMA_InitStruct.PeriphOrM2MSrcAddress  = (uint32_t)&ADC1->DR;
+    DMA_InitStruct.MemoryOrM2MDstAddress  = (uint32_t)&__raw_datas;
+    DMA_InitStruct.Direction              = LL_DMA_DIRECTION_PERIPH_TO_MEMORY;
+    DMA_InitStruct.Mode                   = ADC_DMA_MODE;
+    DMA_InitStruct.PeriphOrM2MSrcIncMode  = LL_DMA_PERIPH_NOINCREMENT;
+    DMA_InitStruct.MemoryOrM2MDstIncMode  = ADC_DMA_MEMORY_INC_MODE;
+    DMA_InitStruct.PeriphOrM2MSrcDataSize = LL_DMA_PDATAALIGN_HALFWORD;
+    DMA_InitStruct.MemoryOrM2MDstDataSize = LL_DMA_MDATAALIGN_HALFWORD;
+    DMA_InitStruct.NbData                 = ADC_OVERSAMPLING_RATIO;
+    DMA_InitStruct.Priority               = LL_DMA_PRIORITY_HIGH;
+    LL_DMA_Init(ADC_DMA_INSTANCE, ADC_DMA_CHANNEL, &DMA_InitStruct);
 
     /* Enable DMA transfer complete interrupt */
-    LL_DMA_EnableIT_TC(DMA1, LL_DMA_CHANNEL_1);
+    LL_DMA_EnableIT_TC(ADC_DMA_INSTANCE, ADC_DMA_CHANNEL);
 
     NVIC_SetPriority(ADC_DMA_IRQn, ADC_DMA_IRQ_PRIORITY);
     NVIC_EnableIRQ(ADC_DMA_IRQn);
@@ -256,30 +331,33 @@ void __adc_calibration(void)
     LL_ADC_REG_SetDMATransfer(ADC1, backup_setting_adc_dma_transfer);
 }
 
-__STATIC_INLINE void __adc_stop(void)
+void __adc_vref_measurement(void)
 {
-    // Stop ADC conversion
-    LL_ADC_REG_StopConversion(ADC_INSTANCE);
+    uint32_t conv_data = 0;
 
-    // Disable DMA transfer
-    LL_DMA_DisableChannel(ADC_DMA_INSTANCE, ADC_DMA_CHANNEL);
-}
+    __adc_config_VREFINT();
 
+    __adc_enable();
 
-__STATIC_INLINE _iq16 __filter(void)
-{
-    register int32_t sum = 0;
-    register uint32_t len = ADC_OVERSAMPLING_RATIO;
-    register __IO uint16_t *raw_data = __raw_datas;
-
-    while (len--)
+    for (int i = 0; i < ADC_REF_CALIBRATION_TIMES; i++)
     {
-        sum += *raw_data++;
+        LL_ADC_REG_StartConversion(ADC1);
+        while (LL_ADC_IsActiveFlag_EOC(ADC1) == 0);
+        conv_data += LL_ADC_REG_ReadConversionData12(ADC1);
+        LL_ADC_ClearFlag_EOC(ADC1);
+        bsp_delay_ms(10);
     }
 
-    sum *= (1ul << 16) / ADC_OVERSAMPLING_RATIO;    // Convert to _iq16 format
-    return (_iq16)sum;
+    conv_data /= ADC_REF_CALIBRATION_TIMES;
+
+    __vref_mv = __LL_ADC_CALC_VREFANALOG_VOLTAGE((uint16_t)conv_data, LL_ADC_RESOLUTION_12B);
+
+    __adc_disable();
+
+    /* Reset ADC configuration */
+    LL_ADC_DeInit(ADC1);
 }
+
 
 
 static void __quick_sort(int32_t arr[], int32_t length)
@@ -319,11 +397,14 @@ void ADC_DMA_IRQHandler(void)
         // For example, you can calculate the average or apply filtering
         __filtered_data = __filter();
 
-        ADC_CompleteCallback(__filtered_data);
+        ADC_CompleteCallback(__filtered_data, ADC_RESOLUTION_BITS, __vref_mv);
     }
 }
 
-__WEAK void ADC_CompleteCallback(_iq16 filtered_data)
+
+__WEAK void ADC_CompleteCallback(_iq16    filtered_data, 
+                                 uint16_t adc_bits, 
+                                 uint16_t adc_ref_voltage_mv)
 {
     // This function can be overridden by the user to handle ADC conversion complete event
 }

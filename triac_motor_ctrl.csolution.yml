@@ -70,6 +70,7 @@ solution:
   define:
     - PY32F003x8
     # - USE_HAL_DRIVER
+    - USE_FULL_LL_DRIVER
     - SVCall_IRQn: SVC_IRQn
     - GLOBAL_IQ: 16
     # - HSI_VALUE: 24000000
