@@ -40,7 +40,7 @@
 #include "tacho.h"
 #include "common.h"
 
-#define TACHO_MAX_OVF_COUNT  50  // Maximum number of overflows allowed before considering the speed as zero
+#define TACHO_MAX_OVF_COUNT  10  // Maximum number of overflows allowed before considering the speed as zero
 /*
  * Private variables
  */
